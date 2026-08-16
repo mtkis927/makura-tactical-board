@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.52</title>
+  <title>まくら投げ戦術ボード Ver.0.53</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -1120,14 +1120,104 @@
       }
     }
 
+  
+    /* iPad / タブレットでは盤面に対して駒が小さく見えるため拡大 */
+    .ipad-like .piece {
+      width: clamp(46px, 5.1vw, 58px);
+      height: clamp(46px, 5.1vw, 58px);
+      font-size: clamp(12px, 1.5vw, 16px);
+      border-width: 3px;
+    }
+
+    .ipad-like .piece.captain {
+      border-width: 4px;
+    }
+
+    .ipad-like .piece.named .piece-label {
+      font-size: clamp(14px, 1.8vw, 20px);
+    }
+
+    .ipad-like .piece.named.name-1 .piece-label {
+      font-size: clamp(17px, 2.1vw, 23px);
+    }
+
+    .ipad-like .piece.named.name-2 .piece-label {
+      font-size: clamp(14px, 1.7vw, 19px);
+    }
+
+    .ipad-like .piece.named .piece-role {
+      font-size: clamp(7px, .8vw, 9px);
+    }
+
+    .ipad-like .piece.support {
+      width: clamp(30px, 3.6vw, 42px);
+      height: clamp(30px, 3.6vw, 42px);
+      font-size: clamp(9px, 1.1vw, 12px);
+    }
+
+    .ipad-like .piece.support.named.name-1 .piece-label {
+      font-size: clamp(12px, 1.4vw, 15px);
+    }
+
+    .ipad-like .piece.support.named.name-2 .piece-label {
+      font-size: clamp(10px, 1.2vw, 13px);
+    }
+
+    .ipad-like .piece.support.named .piece-role {
+      font-size: clamp(6px, .7vw, 8px);
+    }
+
+    .ipad-like .piece.libero-guard {
+      width: clamp(76px, 9.8vw, 108px);
+      height: clamp(36px, 4.3vw, 46px);
+      border-radius: 12px;
+      border-width: 3px;
+    }
+
+    .ipad-like .piece.libero-guard .piece-label {
+      font-size: clamp(13px, 1.5vw, 17px);
+    }
+
+    .ipad-like .piece.libero-guard.named.name-1 .piece-label {
+      font-size: clamp(15px, 1.7vw, 19px);
+    }
+
+    .ipad-like .piece.libero-guard.named.name-2 .piece-label {
+      font-size: clamp(13px, 1.45vw, 16px);
+    }
+
+    .ipad-like .piece.libero-guard.named .piece-role {
+      font-size: clamp(6px, .7vw, 8px);
+    }
+
+    /* iPadでは選択枠も駒に合わせて少し見やすく */
+    .ipad-like .piece.selected {
+      outline-width: 5px;
+      outline-offset: 4px;
+    }
+
   </style>
+
+<script>
+  (() => {
+    const isIPadLike =
+      /iPad/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+      (Math.min(screen.width, screen.height) >= 650 && navigator.maxTouchPoints > 1);
+
+    if (isIPadLike) {
+      document.documentElement.classList.add('ipad-like');
+    }
+  })();
+</script>
+
 </head>
 
 <body>
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.52</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.53</span></div>
       <div class="subtitle">駒をドラッグ。アタッカー・リベロをタップして状態を変更できます。戦術は端末内保存に加え、Googleログイン時はFirebaseで端末間同期できます。</div>
     </div>
 
