@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.48</title>
+  <title>まくら投げ戦術ボード Ver.0.49</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -1000,7 +1000,7 @@
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.48</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.49</span></div>
       <div class="subtitle">駒をドラッグ。アタッカー・リベロをタップして状態を変更できます。戦術は端末内保存に加え、Googleログイン時はFirebaseで端末間同期できます。</div>
     </div>
 
@@ -1131,6 +1131,7 @@
       </div>
       <div class="cloud-subtle" id="cloudStatusDetail">Googleログインすると、この端末の戦術とメンバーをFirebaseで同期できます。</div>
       <div class="cloud-subtle" id="cloudUserEmail"></div>
+      <div class="cloud-subtle" id="cloudLastSync">最終同期：未同期</div>
       <div class="cloud-subtle cloud-uid" id="cloudUid"></div>
     </div>
     <div class="cloud-actions">
@@ -2324,6 +2325,7 @@
   const cloudStatusBadge = document.getElementById('cloudStatusBadge');
   const cloudStatusDetail = document.getElementById('cloudStatusDetail');
   const cloudUserEmail = document.getElementById('cloudUserEmail');
+  const cloudLastSync = document.getElementById('cloudLastSync');
   const cloudUid = document.getElementById('cloudUid');
 
   let currentUser = null;
@@ -2332,6 +2334,53 @@
   let applyingRemote = false;
   let initializedForUser = false;
   let localDirty = false;
+  let lastSyncAt = null;
+
+  function formatSyncTime(value) {
+    if (!value) return '未同期';
+
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '未同期';
+
+    const now = new Date();
+    const sameDay =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate();
+
+    const timeText = new Intl.DateTimeFormat('ja-JP', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+
+    if (sameDay) return `今日 ${timeText}`;
+
+    return new Intl.DateTimeFormat('ja-JP', {
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  }
+
+  function setLastSync(value) {
+    lastSyncAt = value ? new Date(value) : null;
+    cloudLastSync.textContent = `最終同期：${formatSyncTime(lastSyncAt)}`;
+  }
+
+  function cloudUpdatedAtFromData(data) {
+    if (!data) return null;
+
+    if (data.updatedAt && typeof data.updatedAt.toDate === 'function') {
+      return data.updatedAt.toDate();
+    }
+
+    if (typeof data.clientUpdatedAt === 'number') {
+      return new Date(data.clientUpdatedAt);
+    }
+
+    return null;
+  }
 
   function setCloudStatus(main, badge, detail, ok = false) {
     cloudStatusMain.textContent = main;
@@ -2350,6 +2399,7 @@
       cloudSyncNowBtn.hidden = false;
       cloudUserEmail.textContent = user.email ? `Google: ${user.email}` : '';
       cloudUid.textContent = `UID: ${user.uid}`;
+      cloudLastSync.textContent = `最終同期：${formatSyncTime(lastSyncAt)}`;
       setCloudStatus('Firebaseに接続済み', 'CLOUD', '戦術とメンバーをこのGoogleアカウントで同期します。', true);
     } else {
       cloudBtn.textContent = '☁ 未接続';
@@ -2358,6 +2408,7 @@
       cloudSyncNowBtn.hidden = true;
       cloudUserEmail.textContent = '';
       cloudUid.textContent = '';
+      setLastSync(null);
       setCloudStatus('未接続', 'LOCAL', 'Googleログインすると、この端末の戦術とメンバーをFirebaseで同期できます。', false);
     }
   }
@@ -2373,17 +2424,19 @@
 
     try {
       setCloudStatus('同期しています…', 'SYNC', 'Firebaseへ保存しています。', true);
+      cloudBtn.textContent = '☁ 同期中…';
       await setDoc(dataRefFor(currentUser), {
         ...payload,
         clientUpdatedAt: Date.now(),
         updatedAt: serverTimestamp()
       }, { merge: true });
       localDirty = false;
-      setCloudStatus('同期済み', 'CLOUD', '最新の変更をFirebaseへ保存しました。', true);
+      setLastSync(new Date());
+      setCloudStatus('同期済み', 'CLOUD', `最新の変更をFirebaseへ保存しました。最終同期：${formatSyncTime(lastSyncAt)}`, true);
       cloudBtn.textContent = '☁ 同期済';
     } catch (error) {
       console.error('Cloud push failed:', error);
-      setCloudStatus('同期待ち', 'OFFLINE', 'オフライン、またはFirestoreルール未設定の可能性があります。', false);
+      setCloudStatus('同期待ち', 'OFFLINE', `変更あり・同期待ち。最終同期：${formatSyncTime(lastSyncAt)}`, false);
       cloudBtn.textContent = '☁ 同期待ち';
     }
   }
@@ -2391,6 +2444,8 @@
   function schedulePush() {
     if (!currentUser || applyingRemote || !initializedForUser) return;
     localDirty = true;
+    setCloudStatus('変更あり・同期待ち', 'WAIT', `自動同期を待っています。最終同期：${formatSyncTime(lastSyncAt)}`, false);
+    cloudBtn.textContent = '☁ 同期待ち';
     clearTimeout(pushTimer);
     pushTimer = setTimeout(pushNow, 350);
   }
@@ -2403,20 +2458,24 @@
     try {
       const snap = await getDoc(ref);
       if (snap.exists()) {
+        const cloudData = snap.data();
         applyingRemote = true;
-        window.MakuraAppBridge?.importCloudData?.(snap.data());
+        window.MakuraAppBridge?.importCloudData?.(cloudData);
         applyingRemote = false;
+        setLastSync(cloudUpdatedAtFromData(cloudData) || new Date());
         window.MakuraAppBridge?.showToast?.('クラウドの戦術を読み込みました');
       } else {
+        const initialNow = new Date();
         await setDoc(ref, {
           ...window.MakuraAppBridge.exportCloudData(),
-          clientUpdatedAt: Date.now(),
+          clientUpdatedAt: initialNow.getTime(),
           updatedAt: serverTimestamp()
         });
+        setLastSync(initialNow);
         window.MakuraAppBridge?.showToast?.('この端末の戦術をクラウドへ保存しました');
       }
       initializedForUser = true;
-      setCloudStatus('同期済み', 'CLOUD', 'iPhone・iPad・Macで同じGoogleアカウントを使うと同期されます。', true);
+      setCloudStatus('同期済み', 'CLOUD', `iPhone・iPad・Macで同期中。最終同期：${formatSyncTime(lastSyncAt)}`, true);
       cloudBtn.textContent = '☁ 同期済';
     } catch (error) {
       console.error('Initial cloud sync failed:', error);
@@ -2433,14 +2492,18 @@
 
         if (localDirty) return;
 
+        const cloudData = snap.data();
         applyingRemote = true;
         try {
-          window.MakuraAppBridge?.importCloudData?.(snap.data());
+          window.MakuraAppBridge?.importCloudData?.(cloudData);
           if (snap.metadata.fromCache) {
-            setCloudStatus('オフラインキャッシュ', 'OFFLINE', '端末内キャッシュを使用中。オンライン復帰後に同期されます。', false);
+            const cachedAt = cloudUpdatedAtFromData(cloudData);
+            if (cachedAt) setLastSync(cachedAt);
+            setCloudStatus('オフラインキャッシュ', 'OFFLINE', `現在オフライン。最終同期：${formatSyncTime(lastSyncAt)}`, false);
             cloudBtn.textContent = '☁ オフライン';
           } else {
-            setCloudStatus('同期済み', 'CLOUD', 'Firebaseの最新データを反映しました。', true);
+            setLastSync(cloudUpdatedAtFromData(cloudData) || new Date());
+            setCloudStatus('同期済み', 'CLOUD', `Firebaseの最新データを反映しました。最終同期：${formatSyncTime(lastSyncAt)}`, true);
             cloudBtn.textContent = '☁ 同期済';
           }
         } finally {
@@ -2477,6 +2540,25 @@
   cloudCloseBtn.addEventListener('click', () => cloudModal.hidden = true);
   cloudModal.addEventListener('pointerdown', (e) => {
     if (e.target === cloudModal) cloudModal.hidden = true;
+  });
+
+  window.addEventListener('offline', () => {
+    if (!currentUser) return;
+    setCloudStatus('オフライン', 'OFFLINE', `現在オフライン。最終同期：${formatSyncTime(lastSyncAt)}`, false);
+    cloudBtn.textContent = '☁ オフライン';
+  });
+
+  window.addEventListener('online', () => {
+    if (!currentUser) return;
+
+    if (localDirty) {
+      setCloudStatus('再接続・同期中…', 'SYNC', `未同期の変更を送信しています。最終同期：${formatSyncTime(lastSyncAt)}`, true);
+      cloudBtn.textContent = '☁ 同期中…';
+      pushNow();
+    } else {
+      setCloudStatus('オンライン', 'CLOUD', `接続しました。最終同期：${formatSyncTime(lastSyncAt)}`, true);
+      cloudBtn.textContent = '☁ 同期済';
+    }
   });
 
   onAuthStateChanged(auth, async (user) => {
