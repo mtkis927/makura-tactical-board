@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.53</title>
+  <title>まくら投げ戦術ボード Ver.0.54</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -1123,9 +1123,9 @@
   
     /* iPad / タブレットでは盤面に対して駒が小さく見えるため拡大 */
     .ipad-like .piece {
-      width: clamp(46px, 5.1vw, 58px);
-      height: clamp(46px, 5.1vw, 58px);
-      font-size: clamp(12px, 1.5vw, 16px);
+      width: clamp(52px, 5.7vw, 66px);
+      height: clamp(52px, 5.7vw, 66px);
+      font-size: clamp(13px, 1.65vw, 18px);
       border-width: 3px;
     }
 
@@ -1149,10 +1149,26 @@
       font-size: clamp(7px, .8vw, 9px);
     }
 
+
+    /* 枕はiPadでも大きくしすぎず、縦長形状を維持 */
+    .ipad-like .piece.pillow {
+      width: clamp(16px, 1.95vw, 22px);
+      height: clamp(30px, 3.75vw, 42px);
+      border-radius: 999px;
+      font-size: 0;
+      border-width: 1.5px;
+    }
+
+    .ipad-like .piece.out.pillow {
+      width: clamp(16px, 1.95vw, 22px);
+      height: clamp(30px, 3.75vw, 42px);
+      border-radius: 999px;
+    }
+
     .ipad-like .piece.support {
-      width: clamp(30px, 3.6vw, 42px);
-      height: clamp(30px, 3.6vw, 42px);
-      font-size: clamp(9px, 1.1vw, 12px);
+      width: clamp(32px, 3.8vw, 44px);
+      height: clamp(32px, 3.8vw, 44px);
+      font-size: clamp(9px, 1.15vw, 12px);
     }
 
     .ipad-like .piece.support.named.name-1 .piece-label {
@@ -1168,8 +1184,8 @@
     }
 
     .ipad-like .piece.libero-guard {
-      width: clamp(76px, 9.8vw, 108px);
-      height: clamp(36px, 4.3vw, 46px);
+      width: clamp(82px, 10.2vw, 112px);
+      height: clamp(38px, 4.5vw, 48px);
       border-radius: 12px;
       border-width: 3px;
     }
@@ -1217,7 +1233,7 @@
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.53</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.54</span></div>
       <div class="subtitle">駒をドラッグ。アタッカー・リベロをタップして状態を変更できます。戦術は端末内保存に加え、Googleログイン時はFirebaseで端末間同期できます。</div>
     </div>
 
