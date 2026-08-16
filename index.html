@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.45</title>
+  <title>まくら投げ戦術ボード Ver.0.46</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -588,6 +588,104 @@
       margin-top: 8px;
     }
 
+    .lineup-grid {
+      display: grid;
+      gap: 7px;
+    }
+
+    .lineup-divider {
+      margin-top: 5px;
+      padding-top: 9px;
+      border-top: 1px solid #e1e5e9;
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--muted);
+    }
+
+    .lineup-slot {
+      min-height: 48px;
+      display: grid;
+      grid-template-columns: 34px 52px 1fr;
+      gap: 7px;
+      align-items: center;
+      padding: 6px 8px;
+      border: 1px solid #dde2e7;
+      border-radius: 11px;
+      background: #fbfcfd;
+      transition: .12s ease;
+    }
+
+    .lineup-slot.drag-over {
+      border-color: #74a7e2;
+      background: #f1f7fd;
+      box-shadow: 0 0 0 3px rgba(47,128,237,.12);
+    }
+
+    .lineup-grip {
+      height: 34px;
+      border: 0;
+      border-radius: 8px;
+      background: #edf0f3;
+      color: #737e88;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .lineup-grip:active {
+      cursor: grabbing;
+      background: #dfe5ea;
+    }
+
+    .lineup-role {
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .lineup-input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid #cfd6dd;
+      border-radius: 9px;
+      padding: 8px 9px;
+      background: #fff;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 900;
+      text-align: center;
+      outline: none;
+    }
+
+    .lineup-input:focus {
+      border-color: #7da9df;
+      box-shadow: 0 0 0 3px rgba(47,128,237,.12);
+    }
+
+    .lineup-dragging {
+      opacity: .35;
+    }
+
+    .lineup-ghost {
+      position: fixed;
+      z-index: 2500;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      min-width: 82px;
+      padding: 9px 13px;
+      border-radius: 10px;
+      background: #fff;
+      border: 1px solid #aeb7c0;
+      box-shadow: 0 8px 24px rgba(0,0,0,.20);
+      font-weight: 900;
+      font-size: 13px;
+      text-align: center;
+    }
+
     .member-dnd-layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
@@ -891,7 +989,7 @@
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.45</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.46</span></div>
       <div class="subtitle">駒をドラッグ。アタッカー・リベロをタップして状態を変更できます。配置と名前は端末内に保存できます。</div>
     </div>
 
@@ -973,28 +1071,13 @@
 
 <div class="modal-backdrop" id="membersModal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="membersModalTitle">
-    <div class="modal-title" id="membersModalTitle">メンバー・セット編成</div>
+    <div class="modal-title" id="membersModalTitle">セット編成</div>
 
-    <div class="member-section-title">登録メンバー（最大10人・1〜2文字）</div>
-    <div class="member-grid" id="memberGrid"></div>
-
-    <div class="member-section-title">ドラッグでセット編成</div>
-    <div class="member-dnd-layout">
-      <div>
-        <div style="font-size:10px;font-weight:900;color:var(--muted);margin-bottom:6px;">メンバー</div>
-        <div class="member-pool" id="memberPool"></div>
-        <div class="bench-drop" id="benchDrop">ここへドラッグすると控えに戻す</div>
-      </div>
-
-      <div>
-        <div style="font-size:10px;font-weight:900;color:var(--muted);margin-bottom:6px;">出場8ポジション</div>
-        <div class="position-board" id="positionBoard"></div>
-      </div>
+    <div class="member-note" style="margin:0 0 12px;">
+      各ポジションに名前を直接入力できます。左のグリップをドラッグすると、出場8枠＋控え2枠の名前を入れ替えられます。
     </div>
 
-    <div class="member-note">
-      名前を登録したら、メンバーを各ポジションへドラッグしてください。ポジション同士のドラッグは自動で入れ替わります。出場メンバーを控えに戻す場合は左下の「控えに戻す」へドラッグします。
-    </div>
+    <div class="lineup-grid" id="lineupGrid"></div>
 
     <div class="modal-actions" style="gap:8px;">
       <button class="toolbar-button" id="saveMembersBtn" type="button">反映</button>
@@ -1061,10 +1144,7 @@
   const closeTacticsBtn = document.getElementById('closeTacticsBtn');
 
   const membersModal = document.getElementById('membersModal');
-  const memberGrid = document.getElementById('memberGrid');
-  const memberPool = document.getElementById('memberPool');
-  const positionBoard = document.getElementById('positionBoard');
-  const benchDrop = document.getElementById('benchDrop');
+  const lineupGrid = document.getElementById('lineupGrid');
   const saveMembersBtn = document.getElementById('saveMembersBtn');
   const closeMembersBtn = document.getElementById('closeMembersBtn');
 
@@ -1179,262 +1259,209 @@
     'mine-s3': 'S3'
   };
 
-  let draftMembers = [];
-  let draftAssignments = {};
-  let dragState = null;
+  const lineupSlotIds = [
+    'mine-cap', 'mine-lib', 'mine-a1', 'mine-a2',
+    'mine-a3', 'mine-s1', 'mine-s2', 'mine-s3',
+    'bench1', 'bench2'
+  ];
 
-  function currentAssignments() {
+  const lineupSlotLabels = {
+    'mine-cap': '大将',
+    'mine-lib': 'L',
+    'mine-a1': 'A1',
+    'mine-a2': 'A2',
+    'mine-a3': 'A3',
+    'mine-s1': 'S1',
+    'mine-s2': 'S2',
+    'mine-s3': 'S3',
+    'bench1': '控え1',
+    'bench2': '控え2'
+  };
+
+  let draftMembers = [];
+  let draftSlots = {};
+  let lineupDrag = null;
+
+  function buildCurrentLineupSlots() {
     const result = {};
+    const used = new Set();
+
     ownPositionIds.forEach(pieceId => {
       const p = pieces.find(piece => piece.id === pieceId);
-      result[pieceId] = p?.memberId || '';
+      const memberId = p?.memberId || '';
+
+      if (memberId && members.some(m => m.id === memberId) && !used.has(memberId)) {
+        result[pieceId] = memberId;
+        used.add(memberId);
+      }
     });
+
+    const remaining = members.map(m => m.id).filter(id => !used.has(id));
+
+    ownPositionIds.forEach(pieceId => {
+      if (!result[pieceId]) result[pieceId] = remaining.shift() || '';
+    });
+
+    result.bench1 = remaining.shift() || '';
+    result.bench2 = remaining.shift() || '';
+
     return result;
   }
 
-  function renderMembersModal() {
-    memberGrid.replaceChildren();
+  function draftMemberBySlot(slotId) {
+    const memberId = draftSlots[slotId];
+    return draftMembers.find(m => m.id === memberId) || null;
+  }
 
-    draftMembers.forEach((m, index) => {
+  function renderLineupModal() {
+    lineupGrid.replaceChildren();
+
+    lineupSlotIds.forEach(slotId => {
+      if (slotId === 'bench1') {
+        const divider = document.createElement('div');
+        divider.className = 'lineup-divider';
+        divider.textContent = '控え';
+        lineupGrid.appendChild(divider);
+      }
+
       const row = document.createElement('div');
-      row.className = 'member-input-row';
+      row.className = 'lineup-slot';
+      row.dataset.slotId = slotId;
 
-      const no = document.createElement('span');
-      no.textContent = String(index + 1);
+      const grip = document.createElement('button');
+      grip.type = 'button';
+      grip.className = 'lineup-grip';
+      grip.textContent = '≡';
+      grip.setAttribute('aria-label', `${lineupSlotLabels[slotId]}をドラッグして入れ替え`);
+
+      const role = document.createElement('div');
+      role.className = 'lineup-role';
+      role.textContent = lineupSlotLabels[slotId];
 
       const input = document.createElement('input');
       input.type = 'text';
       input.maxLength = 2;
-      input.value = m.name;
-      input.dataset.memberId = m.id;
+      input.className = 'lineup-input';
       input.placeholder = '名前';
+
+      const member = draftMemberBySlot(slotId);
+      input.value = member?.name || '';
+
       input.addEventListener('input', () => {
-        const member = draftMembers.find(item => item.id === m.id);
-        if (member) member.name = Array.from(input.value.trim()).slice(0, 2).join('');
-        renderMemberPoolAndPositions();
+        const current = draftMemberBySlot(slotId);
+        if (!current) return;
+
+        const value = Array.from(input.value.trim()).slice(0, 2).join('');
+        current.name = value;
+        if (input.value !== value) input.value = value;
       });
 
-      row.append(no, input);
-      memberGrid.appendChild(row);
-    });
+      bindLineupDrag(grip, slotId);
 
-    renderMemberPoolAndPositions();
-  }
-
-  function assignedPositionFor(memberId) {
-    return Object.keys(draftAssignments).find(pieceId => draftAssignments[pieceId] === memberId) || null;
-  }
-
-  function renderMemberPoolAndPositions() {
-    memberPool.replaceChildren();
-
-    draftMembers.forEach((m, index) => {
-      const assigned = assignedPositionFor(m.id);
-      if (assigned) return;
-
-      const card = document.createElement('div');
-      card.className = 'member-card';
-      if (!m.name) card.classList.add('empty');
-      card.dataset.memberId = m.id;
-
-      const no = document.createElement('span');
-      no.className = 'member-no';
-      no.textContent = String(index + 1);
-
-      const label = document.createElement('span');
-      label.textContent = m.name || '未登録';
-
-      card.append(no, label);
-
-      if (m.name) {
-        bindMemberDrag(card, {
-          memberId: m.id,
-          sourcePieceId: null,
-          label: m.name
-        });
-      }
-
-      memberPool.appendChild(card);
-    });
-
-    positionBoard.replaceChildren();
-
-    ownPositionIds.forEach(pieceId => {
-      const slot = document.createElement('div');
-      slot.className = 'position-slot';
-      slot.dataset.pieceId = pieceId;
-
-      const label = document.createElement('div');
-      label.className = 'position-label';
-      label.textContent = ownPositionLabels[pieceId];
-
-      const memberId = draftAssignments[pieceId] || '';
-      const member = draftMembers.find(m => m.id === memberId);
-
-      const content = document.createElement('div');
-      content.className = 'slot-member';
-      if (!member || !member.name) {
-        content.classList.add('empty');
-        content.textContent = '未設定';
-      } else {
-        content.textContent = member.name;
-        bindMemberDrag(content, {
-          memberId,
-          sourcePieceId: pieceId,
-          label: member.name
-        });
-      }
-
-
-      slot.append(label, content);
-      positionBoard.appendChild(slot);
+      row.append(grip, role, input);
+      lineupGrid.appendChild(row);
     });
   }
 
   function openMembersModal() {
     draftMembers = clone(members);
-    draftAssignments = currentAssignments();
-    renderMembersModal();
+    draftSlots = buildCurrentLineupSlots();
+    renderLineupModal();
     membersModal.hidden = false;
   }
 
-  function bindMemberDrag(el, payload) {
-    el.addEventListener('pointerdown', e => {
+  function bindLineupDrag(handle, sourceSlotId) {
+    handle.addEventListener('pointerdown', e => {
       if (e.button !== undefined && e.button !== 0) return;
       e.preventDefault();
 
-      dragState = {
-        ...payload,
+      lineupDrag = {
         pointerId: e.pointerId,
-        sourceEl: el,
-        ghost: null,
+        sourceSlotId,
+        handle,
         startX: e.clientX,
         startY: e.clientY,
-        moved: false
+        moved: false,
+        ghost: null
       };
 
-      try { el.setPointerCapture(e.pointerId); } catch {}
+      try { handle.setPointerCapture(e.pointerId); } catch {}
     });
 
-    el.addEventListener('pointermove', e => {
-      if (!dragState || dragState.pointerId !== e.pointerId) return;
+    handle.addEventListener('pointermove', e => {
+      if (!lineupDrag || lineupDrag.pointerId !== e.pointerId) return;
 
-      const distance = Math.hypot(e.clientX - dragState.startX, e.clientY - dragState.startY);
-      if (distance < 5 && !dragState.moved) return;
+      const dist = Math.hypot(e.clientX - lineupDrag.startX, e.clientY - lineupDrag.startY);
+      if (!lineupDrag.moved && dist < 5) return;
 
-      if (!dragState.moved) {
-        dragState.moved = true;
-        el.classList.add('dragging');
+      if (!lineupDrag.moved) {
+        lineupDrag.moved = true;
+        handle.classList.add('lineup-dragging');
 
+        const member = draftMemberBySlot(sourceSlotId);
         const ghost = document.createElement('div');
-        ghost.className = 'drag-ghost';
-        ghost.textContent = dragState.label;
+        ghost.className = 'lineup-ghost';
+        ghost.textContent = member?.name || lineupSlotLabels[sourceSlotId];
         document.body.appendChild(ghost);
-        dragState.ghost = ghost;
+        lineupDrag.ghost = ghost;
       }
 
-      moveDragGhost(e.clientX, e.clientY);
-      updateDragOver(e.clientX, e.clientY);
+      if (lineupDrag.ghost) {
+        lineupDrag.ghost.style.left = `${e.clientX}px`;
+        lineupDrag.ghost.style.top = `${e.clientY}px`;
+      }
+
+      highlightLineupDrop(e.clientX, e.clientY);
     });
 
     const finish = e => {
-      if (!dragState || dragState.pointerId !== e.pointerId) return;
+      if (!lineupDrag || lineupDrag.pointerId !== e.pointerId) return;
 
-      try { el.releasePointerCapture(e.pointerId); } catch {}
+      try { handle.releasePointerCapture(e.pointerId); } catch {}
 
-      if (dragState.moved) {
-        const target = dropTargetAt(e.clientX, e.clientY);
-        if (target) applyMemberDrop(target);
+      if (lineupDrag.moved) {
+        const targetSlotId = lineupDropTarget(e.clientX, e.clientY);
+
+        if (targetSlotId && targetSlotId !== sourceSlotId) {
+          const tmp = draftSlots[sourceSlotId];
+          draftSlots[sourceSlotId] = draftSlots[targetSlotId];
+          draftSlots[targetSlotId] = tmp;
+          renderLineupModal();
+        }
       }
 
-      cleanupDragState();
+      cleanupLineupDrag();
     };
 
-    el.addEventListener('pointerup', finish);
-    el.addEventListener('pointercancel', cleanupDragState);
+    handle.addEventListener('pointerup', finish);
+    handle.addEventListener('pointercancel', cleanupLineupDrag);
   }
 
-  function moveDragGhost(x, y) {
-    if (!dragState?.ghost) return;
-    dragState.ghost.style.left = `${x}px`;
-    dragState.ghost.style.top = `${y}px`;
-  }
-
-  function clearDragOver() {
-    document.querySelectorAll('.position-slot.drag-over, .bench-drop.drag-over')
-      .forEach(el => el.classList.remove('drag-over'));
-  }
-
-  function dropTargetAt(x, y) {
-    clearDragOver();
+  function lineupDropTarget(x, y) {
     const el = document.elementFromPoint(x, y);
-    if (!el) return null;
-
-    const slot = el.closest('.position-slot');
-    if (slot) return { type: 'position', pieceId: slot.dataset.pieceId, el: slot };
-
-    const bench = el.closest('#benchDrop');
-    if (bench) return { type: 'bench', el: bench };
-
-    return null;
+    const row = el?.closest('.lineup-slot');
+    return row?.dataset.slotId || null;
   }
 
-  function updateDragOver(x, y) {
-    const target = dropTargetAt(x, y);
-    if (target?.el) target.el.classList.add('drag-over');
+  function highlightLineupDrop(x, y) {
+    document.querySelectorAll('.lineup-slot.drag-over')
+      .forEach(el => el.classList.remove('drag-over'));
+
+    const targetId = lineupDropTarget(x, y);
+    if (!targetId) return;
+
+    const row = lineupGrid.querySelector(`.lineup-slot[data-slot-id="${targetId}"]`);
+    row?.classList.add('drag-over');
   }
 
-  function applyMemberDrop(target) {
-    if (!dragState) return;
+  function cleanupLineupDrag() {
+    document.querySelectorAll('.lineup-slot.drag-over')
+      .forEach(el => el.classList.remove('drag-over'));
 
-    const memberId = dragState.memberId;
-    const sourcePieceId = dragState.sourcePieceId;
+    if (lineupDrag?.handle) lineupDrag.handle.classList.remove('lineup-dragging');
+    if (lineupDrag?.ghost) lineupDrag.ghost.remove();
 
-    if (target.type === 'bench') {
-      if (sourcePieceId) draftAssignments[sourcePieceId] = '';
-      renderMemberPoolAndPositions();
-      return;
-    }
-
-    const targetPieceId = target.pieceId;
-    if (!targetPieceId) return;
-
-    const targetMemberId = draftAssignments[targetPieceId] || '';
-
-    // 同じ場所なら何もしない
-    if (sourcePieceId === targetPieceId) return;
-
-    // プール → ポジション
-    if (!sourcePieceId) {
-      const previousPosition = assignedPositionFor(memberId);
-      if (previousPosition) draftAssignments[previousPosition] = '';
-
-      draftAssignments[targetPieceId] = memberId;
-
-      // 既存担当者がいた場合は控えへ戻す
-      if (targetMemberId && targetMemberId !== memberId) {
-        const otherPos = assignedPositionFor(targetMemberId);
-        if (otherPos && otherPos !== targetPieceId) draftAssignments[otherPos] = '';
-      }
-
-      renderMemberPoolAndPositions();
-      return;
-    }
-
-    // ポジション → ポジション：担当者を交換
-    draftAssignments[targetPieceId] = memberId;
-    draftAssignments[sourcePieceId] = targetMemberId;
-
-    renderMemberPoolAndPositions();
-  }
-
-  function cleanupDragState() {
-    clearDragOver();
-
-    if (dragState?.sourceEl) dragState.sourceEl.classList.remove('dragging');
-    if (dragState?.ghost) dragState.ghost.remove();
-
-    dragState = null;
+    lineupDrag = null;
   }
 
   function showToast(message) {
@@ -1897,13 +1924,13 @@
 
   closeMembersBtn.addEventListener('click', () => {
     membersModal.hidden = true;
-    cleanupDragState();
+    cleanupLineupDrag();
   });
 
   membersModal.addEventListener('pointerdown', e => {
     if (e.target === membersModal) {
       membersModal.hidden = true;
-      cleanupDragState();
+      cleanupLineupDrag();
     }
   });
 
@@ -1915,16 +1942,16 @@
       const p = pieces.find(piece => piece.id === pieceId);
       if (!p) return;
 
-      const memberId = draftAssignments[pieceId] || '';
+      const memberId = draftSlots[pieceId] || '';
       if (memberId) p.memberId = memberId;
       else delete p.memberId;
     });
 
     membersModal.hidden = true;
     selectedId = null;
-    cleanupDragState();
+    cleanupLineupDrag();
     render();
-    showToast('メンバーとセット編成を反映しました');
+    showToast('セット編成を反映しました');
   });
 
 
@@ -1949,6 +1976,7 @@
       version: 1,
       mode,
       showPillows,
+      members: clone(members),
       pieces: clone(pieces),
       drawings: clone(drawings)
     };
@@ -1966,6 +1994,20 @@
 
       return merged;
     });
+
+    if (Array.isArray(data.members)) {
+      const savedMembers = new Map(data.members.map(m => [m.id, m]));
+      members = blankMembers().map(base => {
+        const saved = savedMembers.get(base.id);
+        return {
+          id: base.id,
+          name: saved && typeof saved.name === 'string'
+            ? Array.from(saved.name.trim()).slice(0, 2).join('')
+            : ''
+        };
+      });
+      saveMembersToStorage();
+    }
 
     mode = data.mode === 'final30' ? 'final30' : 'normal';
     showPillows = data.showPillows !== false;
