@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.51</title>
+  <title>まくら投げ戦術ボード Ver.0.52</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -101,8 +101,10 @@
 
     .stage-wrap {
       min-height: 0;
+      min-width: 0;
       display: grid;
       place-items: center;
+      overflow: hidden;
     }
 
     .stage {
@@ -201,7 +203,7 @@
 
     /* 相手側はコート上、自チーム側はコート下。同じ高さ・同じ間隔。 */
     .futon.external.enemy { top: 1.5%; }
-    .futon.external.mine  { top: 88.0%; }
+    .futon.external.mine  { top: 89.7%; }
 
     .futon.external.f1 { left: 24%; }
     .futon.external.f2 { left: 39%; }
@@ -966,7 +968,7 @@
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
     @media (orientation: portrait) {
-      .app { grid-template-rows: auto 1fr auto; }
+      .app { grid-template-rows: auto auto minmax(0, 1fr) auto; }
       .topbar { grid-template-columns: 1fr; }
       .toolbar { justify-content: space-between; }
       .stage {
@@ -999,8 +1001,8 @@
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 5px 8px;
       align-items: center;
-      padding: 6px 9px;
-      margin: 0 8px 4px;
+      padding: 5px 9px;
+      margin: 0 8px 2px;
       border: 1px solid #dfe4e8;
       border-radius: 12px;
       background: rgba(255,255,255,.94);
@@ -1104,7 +1106,7 @@
       .current-tactic-strip {
         margin-left: 4px;
         margin-right: 4px;
-        padding: 5px 7px;
+        padding: 4px 7px;
       }
 
       .current-tactic-memo {
@@ -1125,7 +1127,7 @@
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.51</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.52</span></div>
       <div class="subtitle">駒をドラッグ。アタッカー・リベロをタップして状態を変更できます。戦術は端末内保存に加え、Googleログイン時はFirebaseで端末間同期できます。</div>
     </div>
 
@@ -2695,7 +2697,7 @@
     };
 
     futonXs.forEach(px => drawFuton(px, .015));
-    futonXs.forEach(px => drawFuton(px, .88));
+    futonXs.forEach(px => drawFuton(px, .897));
 
     // Drawings
     drawings.forEach(d => {
