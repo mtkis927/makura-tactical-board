@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.47</title>
+  <title>まくら投げ戦術ボード Ver.0.48</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -1000,7 +1000,7 @@
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.47</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.48</span></div>
       <div class="subtitle">駒をドラッグ。アタッカー・リベロをタップして状態を変更できます。戦術は端末内保存に加え、Googleログイン時はFirebaseで端末間同期できます。</div>
     </div>
 
@@ -1086,7 +1086,7 @@
     <div class="modal-title" id="membersModalTitle">セット編成</div>
 
     <div class="member-note" style="margin:0 0 12px;">
-      各ポジションに名前を直接入力できます。左のグリップをドラッグすると、出場8枠＋控え2枠の名前を入れ替えられます。
+      各ポジションに名前を直接入力できます。名前は2文字まで。左のグリップをドラッグすると、出場8枠＋控え2枠の名前を入れ替えられます。
     </div>
 
     <div class="lineup-grid" id="lineupGrid"></div>
@@ -1380,21 +1380,38 @@
 
       const input = document.createElement('input');
       input.type = 'text';
-      input.maxLength = 2;
       input.className = 'lineup-input';
-      input.placeholder = '名前';
+      input.placeholder = '名前（2文字まで）';
 
       const member = draftMemberBySlot(slotId);
       input.value = member?.name || '';
 
-      input.addEventListener('input', () => {
+      let isComposingName = false;
+
+      const commitName = () => {
         const current = draftMemberBySlot(slotId);
         if (!current) return;
 
         const value = Array.from(input.value.trim()).slice(0, 2).join('');
         current.name = value;
         if (input.value !== value) input.value = value;
+      };
+
+      input.addEventListener('compositionstart', () => {
+        isComposingName = true;
       });
+
+      input.addEventListener('compositionend', () => {
+        isComposingName = false;
+        commitName();
+      });
+
+      input.addEventListener('input', () => {
+        if (isComposingName) return;
+        commitName();
+      });
+
+      input.addEventListener('blur', commitName);
 
       bindLineupDrag(grip, slotId);
 
@@ -2207,7 +2224,9 @@
       board: currentBoardSnapshot()
     };
 
+    const overwrittenId = tactics[index].id;
     setTactics(tactics);
+    currentTacticId = overwrittenId;
     renderTacticList();
     updateOverwriteUI();
     showToast(`「${tactics[index].name}」を上書きしました`);
@@ -2240,7 +2259,10 @@
       localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
     }
 
-    currentTacticId = null;
+    if (currentTacticId && !getTactics().some(t => t.id === currentTacticId)) {
+      currentTacticId = null;
+    }
+
     render();
     updatePillowToggleUI();
     if (!tacticsModal.hidden) {
@@ -2309,6 +2331,7 @@
   let pushTimer = null;
   let applyingRemote = false;
   let initializedForUser = false;
+  let localDirty = false;
 
   function setCloudStatus(main, badge, detail, ok = false) {
     cloudStatusMain.textContent = main;
@@ -2355,6 +2378,7 @@
         clientUpdatedAt: Date.now(),
         updatedAt: serverTimestamp()
       }, { merge: true });
+      localDirty = false;
       setCloudStatus('同期済み', 'CLOUD', '最新の変更をFirebaseへ保存しました。', true);
       cloudBtn.textContent = '☁ 同期済';
     } catch (error) {
@@ -2366,8 +2390,9 @@
 
   function schedulePush() {
     if (!currentUser || applyingRemote || !initializedForUser) return;
+    localDirty = true;
     clearTimeout(pushTimer);
-    pushTimer = setTimeout(pushNow, 500);
+    pushTimer = setTimeout(pushNow, 350);
   }
 
   async function initializeUserSync(user) {
@@ -2405,6 +2430,9 @@
       { includeMetadataChanges: true },
       (snap) => {
         if (!snap.exists() || snap.metadata.hasPendingWrites) return;
+
+        if (localDirty) return;
+
         applyingRemote = true;
         try {
           window.MakuraAppBridge?.importCloudData?.(snap.data());
