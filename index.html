@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.46</title>
+  <title>まくら投げ戦術ボード Ver.0.47</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -982,6 +982,17 @@
       .name-editor { justify-content: center; }
       .actions { justify-content: center; }
     }
+  
+    .cloud-status-box { display:grid; gap:8px; padding:12px; border:1px solid #dde2e7; border-radius:12px; background:#fbfcfd; margin-bottom:12px; }
+    .cloud-status-line { display:flex; gap:8px; align-items:center; justify-content:space-between; font-size:12px; }
+    .cloud-status-main { font-weight:900; }
+    .cloud-subtle { color:var(--muted); font-size:10px; line-height:1.5; overflow-wrap:anywhere; }
+    .cloud-badge { display:inline-flex; align-items:center; min-height:22px; padding:3px 8px; border-radius:999px; border:1px solid #d7dde3; background:#fff; font-size:10px; font-weight:900; white-space:nowrap; }
+    .cloud-badge.ok { border-color:#a7d8b1; background:#f0f9f2; }
+    .cloud-badge.warn { border-color:#ead59b; background:#fff9e9; }
+    .cloud-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .cloud-uid { user-select:text; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:10px; overflow-wrap:anywhere; }
+
   </style>
 </head>
 
@@ -989,8 +1000,8 @@
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.46</span></div>
-      <div class="subtitle">駒をドラッグ。アタッカー・リベロをタップして状態を変更できます。配置と名前は端末内に保存できます。</div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.47</span></div>
+      <div class="subtitle">駒をドラッグ。アタッカー・リベロをタップして状態を変更できます。戦術は端末内保存に加え、Googleログイン時はFirebaseで端末間同期できます。</div>
     </div>
 
     <div class="toolbar">
@@ -1000,6 +1011,7 @@
       </div>
       <button class="toolbar-button" id="pillowToggleBtn">枕なし</button>
       <button class="toolbar-button" id="tacticsBtn">戦術</button>
+      <button class="toolbar-button" id="cloudBtn" type="button">☁ 未接続</button>
       <button class="toolbar-button" id="resetBtn">開始配置</button>
     </div>
   </header>
@@ -1108,6 +1120,32 @@
   </div>
 </div>
 
+
+<div class="modal-backdrop" id="cloudModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="cloudModalTitle">
+    <div class="modal-title" id="cloudModalTitle">クラウド同期</div>
+    <div class="cloud-status-box">
+      <div class="cloud-status-line">
+        <div class="cloud-status-main" id="cloudStatusMain">未接続</div>
+        <div class="cloud-badge warn" id="cloudStatusBadge">LOCAL</div>
+      </div>
+      <div class="cloud-subtle" id="cloudStatusDetail">Googleログインすると、この端末の戦術とメンバーをFirebaseで同期できます。</div>
+      <div class="cloud-subtle" id="cloudUserEmail"></div>
+      <div class="cloud-subtle cloud-uid" id="cloudUid"></div>
+    </div>
+    <div class="cloud-actions">
+      <button class="toolbar-button" id="cloudLoginBtn" type="button">Googleでログイン</button>
+      <button class="toolbar-button" id="cloudSyncNowBtn" type="button" hidden>今すぐ同期</button>
+      <button class="toolbar-button" id="cloudLogoutBtn" type="button" hidden>ログアウト</button>
+      <button class="toolbar-button" id="cloudCloseBtn" type="button">閉じる</button>
+    </div>
+    <div class="member-note" style="margin-top:12px;">
+      初回ログイン時、クラウドにデータがなければこの端末のデータをアップロードします。
+      すでにクラウドデータがある場合はクラウド側を読み込みます。
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1121,6 +1159,7 @@
   const pillowToggleBtn = document.getElementById('pillowToggleBtn');
   const tacticsBtn = document.getElementById('tacticsBtn');
   const resetBtn = document.getElementById('resetBtn');
+  const cloudBtn = document.getElementById('cloudBtn');
 
   const drawLayer = document.getElementById('drawLayer');
   const savedDrawingsEl = document.getElementById('savedDrawings');
@@ -1236,6 +1275,7 @@
 
   function saveMembersToStorage() {
     localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
+    window.MakuraCloud?.schedulePush?.();
   }
 
   function memberName(memberId) {
@@ -1969,6 +2009,7 @@
 
   function setTactics(list) {
     localStorage.setItem(TACTICS_KEY, JSON.stringify(list));
+    window.MakuraCloud?.schedulePush?.();
   }
 
   function currentBoardSnapshot() {
@@ -2173,10 +2214,259 @@
   });
 
 
+
+  function exportCloudData() {
+    return { schemaVersion: 1, tactics: clone(getTactics()), members: clone(members) };
+  }
+
+  function importCloudData(data) {
+    if (!data || typeof data !== 'object') return;
+
+    if (Array.isArray(data.tactics)) {
+      localStorage.setItem(TACTICS_KEY, JSON.stringify(data.tactics));
+    }
+
+    if (Array.isArray(data.members)) {
+      const savedMembers = new Map(data.members.map(m => [m.id, m]));
+      members = blankMembers().map(base => {
+        const saved = savedMembers.get(base.id);
+        return {
+          id: base.id,
+          name: saved && typeof saved.name === 'string'
+            ? Array.from(saved.name.trim()).slice(0, 2).join('')
+            : ''
+        };
+      });
+      localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
+    }
+
+    currentTacticId = null;
+    render();
+    updatePillowToggleUI();
+    if (!tacticsModal.hidden) {
+      renderTacticList();
+      updateOverwriteUI();
+    }
+  }
+
+  window.MakuraAppBridge = {
+    exportCloudData,
+    importCloudData,
+    showToast,
+    openCloudModal() { document.getElementById('cloudModal').hidden = false; }
+  };
+
+  cloudBtn.addEventListener('click', () => {
+    if (window.MakuraCloud?.openModal) window.MakuraCloud.openModal();
+    else window.MakuraAppBridge.openCloudModal();
+  });
+
+
   render();
   updatePillowToggleUI();
   setDrawTool('move');
 })();
+</script>
+
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+  import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBof9CqSHXyB_NWyJDsB9KNqWK9n-fFi3o",
+    authDomain: "makura-tactical-board.firebaseapp.com",
+    projectId: "makura-tactical-board",
+    storageBucket: "makura-tactical-board.firebasestorage.app",
+    messagingSenderId: "1066157591004",
+    appId: "1:1066157591004:web:b40019e68ef3c82c622719",
+    measurementId: "G-RN5WCWGY8S"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  auth.useDeviceLanguage();
+
+  const db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
+
+  const cloudModal = document.getElementById('cloudModal');
+  const cloudBtn = document.getElementById('cloudBtn');
+  const cloudLoginBtn = document.getElementById('cloudLoginBtn');
+  const cloudLogoutBtn = document.getElementById('cloudLogoutBtn');
+  const cloudSyncNowBtn = document.getElementById('cloudSyncNowBtn');
+  const cloudCloseBtn = document.getElementById('cloudCloseBtn');
+  const cloudStatusMain = document.getElementById('cloudStatusMain');
+  const cloudStatusBadge = document.getElementById('cloudStatusBadge');
+  const cloudStatusDetail = document.getElementById('cloudStatusDetail');
+  const cloudUserEmail = document.getElementById('cloudUserEmail');
+  const cloudUid = document.getElementById('cloudUid');
+
+  let currentUser = null;
+  let unsubscribeSnapshot = null;
+  let pushTimer = null;
+  let applyingRemote = false;
+  let initializedForUser = false;
+
+  function setCloudStatus(main, badge, detail, ok = false) {
+    cloudStatusMain.textContent = main;
+    cloudStatusBadge.textContent = badge;
+    cloudStatusBadge.classList.toggle('ok', ok);
+    cloudStatusBadge.classList.toggle('warn', !ok);
+    cloudStatusDetail.textContent = detail || '';
+  }
+
+  function updateCloudUi(user) {
+    currentUser = user || null;
+    if (user) {
+      cloudBtn.textContent = '☁ 同期中';
+      cloudLoginBtn.hidden = true;
+      cloudLogoutBtn.hidden = false;
+      cloudSyncNowBtn.hidden = false;
+      cloudUserEmail.textContent = user.email ? `Google: ${user.email}` : '';
+      cloudUid.textContent = `UID: ${user.uid}`;
+      setCloudStatus('Firebaseに接続済み', 'CLOUD', '戦術とメンバーをこのGoogleアカウントで同期します。', true);
+    } else {
+      cloudBtn.textContent = '☁ 未接続';
+      cloudLoginBtn.hidden = false;
+      cloudLogoutBtn.hidden = true;
+      cloudSyncNowBtn.hidden = true;
+      cloudUserEmail.textContent = '';
+      cloudUid.textContent = '';
+      setCloudStatus('未接続', 'LOCAL', 'Googleログインすると、この端末の戦術とメンバーをFirebaseで同期できます。', false);
+    }
+  }
+
+  function dataRefFor(user) {
+    return doc(db, 'users', user.uid, 'appData', 'main');
+  }
+
+  async function pushNow() {
+    if (!currentUser || applyingRemote) return;
+    const payload = window.MakuraAppBridge?.exportCloudData?.();
+    if (!payload) return;
+
+    try {
+      setCloudStatus('同期しています…', 'SYNC', 'Firebaseへ保存しています。', true);
+      await setDoc(dataRefFor(currentUser), {
+        ...payload,
+        clientUpdatedAt: Date.now(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      setCloudStatus('同期済み', 'CLOUD', '最新の変更をFirebaseへ保存しました。', true);
+      cloudBtn.textContent = '☁ 同期済';
+    } catch (error) {
+      console.error('Cloud push failed:', error);
+      setCloudStatus('同期待ち', 'OFFLINE', 'オフライン、またはFirestoreルール未設定の可能性があります。', false);
+      cloudBtn.textContent = '☁ 同期待ち';
+    }
+  }
+
+  function schedulePush() {
+    if (!currentUser || applyingRemote || !initializedForUser) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(pushNow, 500);
+  }
+
+  async function initializeUserSync(user) {
+    initializedForUser = false;
+    if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+    const ref = dataRefFor(user);
+    try {
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        applyingRemote = true;
+        window.MakuraAppBridge?.importCloudData?.(snap.data());
+        applyingRemote = false;
+        window.MakuraAppBridge?.showToast?.('クラウドの戦術を読み込みました');
+      } else {
+        await setDoc(ref, {
+          ...window.MakuraAppBridge.exportCloudData(),
+          clientUpdatedAt: Date.now(),
+          updatedAt: serverTimestamp()
+        });
+        window.MakuraAppBridge?.showToast?.('この端末の戦術をクラウドへ保存しました');
+      }
+      initializedForUser = true;
+      setCloudStatus('同期済み', 'CLOUD', 'iPhone・iPad・Macで同じGoogleアカウントを使うと同期されます。', true);
+      cloudBtn.textContent = '☁ 同期済';
+    } catch (error) {
+      console.error('Initial cloud sync failed:', error);
+      initializedForUser = true;
+      setCloudStatus('ログイン済み・Firestore未接続', 'RULES', 'Googleログインは成功しています。次にFirestoreのセキュリティルールを設定してください。', false);
+      cloudBtn.textContent = '☁ 要設定';
+    }
+
+    unsubscribeSnapshot = onSnapshot(
+      ref,
+      { includeMetadataChanges: true },
+      (snap) => {
+        if (!snap.exists() || snap.metadata.hasPendingWrites) return;
+        applyingRemote = true;
+        try {
+          window.MakuraAppBridge?.importCloudData?.(snap.data());
+          if (snap.metadata.fromCache) {
+            setCloudStatus('オフラインキャッシュ', 'OFFLINE', '端末内キャッシュを使用中。オンライン復帰後に同期されます。', false);
+            cloudBtn.textContent = '☁ オフライン';
+          } else {
+            setCloudStatus('同期済み', 'CLOUD', 'Firebaseの最新データを反映しました。', true);
+            cloudBtn.textContent = '☁ 同期済';
+          }
+        } finally {
+          applyingRemote = false;
+        }
+      },
+      (error) => {
+        console.error('Cloud listener failed:', error);
+        setCloudStatus('同期エラー', 'ERROR', 'Firestoreのルール設定または通信状態を確認してください。', false);
+        cloudBtn.textContent = '☁ エラー';
+      }
+    );
+  }
+
+  cloudLoginBtn.addEventListener('click', async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      setCloudStatus('Googleログイン中…', 'AUTH', 'ログイン画面を開いています。', true);
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error('Google sign in failed:', error);
+      setCloudStatus('ログインできませんでした', 'ERROR', `${error.code || ''} ${error.message || ''}`.trim(), false);
+    }
+  });
+
+  cloudLogoutBtn.addEventListener('click', async () => {
+    await signOut(auth);
+    cloudModal.hidden = true;
+    window.MakuraAppBridge?.showToast?.('Firebaseからログアウトしました');
+  });
+
+  cloudSyncNowBtn.addEventListener('click', pushNow);
+  cloudCloseBtn.addEventListener('click', () => cloudModal.hidden = true);
+  cloudModal.addEventListener('pointerdown', (e) => {
+    if (e.target === cloudModal) cloudModal.hidden = true;
+  });
+
+  onAuthStateChanged(auth, async (user) => {
+    updateCloudUi(user);
+    if (!user) {
+      initializedForUser = false;
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+      unsubscribeSnapshot = null;
+      return;
+    }
+    await initializeUserSync(user);
+  });
+
+  window.MakuraCloud = {
+    schedulePush,
+    pushNow,
+    openModal() { cloudModal.hidden = false; }
+  };
 </script>
 
 <script>
