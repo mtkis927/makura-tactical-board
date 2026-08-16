@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.49</title>
+  <title>まくら投げ戦術ボード Ver.0.50</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -993,6 +993,130 @@
     .cloud-actions { display:flex; flex-wrap:wrap; gap:8px; }
     .cloud-uid { user-select:text; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:10px; overflow-wrap:anywhere; }
 
+  
+    .current-tactic-strip {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px 10px;
+      align-items: center;
+      padding: 8px 10px;
+      margin: 0 10px 8px;
+      border: 1px solid #dfe4e8;
+      border-radius: 12px;
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 2px 8px rgba(42,52,60,.05);
+    }
+
+    .current-tactic-info {
+      min-width: 0;
+    }
+
+    .current-tactic-name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .current-tactic-name-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .current-tactic-dirty {
+      flex: 0 0 auto;
+      font-size: 10px;
+      font-weight: 900;
+      color: #9a6b13;
+      background: #fff7df;
+      border: 1px solid #ead59b;
+      border-radius: 999px;
+      padding: 2px 6px;
+    }
+
+    .current-tactic-memo {
+      margin-top: 2px;
+      font-size: 10px;
+      line-height: 1.35;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .current-tactic-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .quick-save-button {
+      min-width: 62px;
+    }
+
+    .camera-button {
+      width: 36px;
+      min-width: 36px;
+      padding-left: 0;
+      padding-right: 0;
+      font-size: 16px;
+    }
+
+    .tactic-memo-input {
+      width: 100%;
+      min-height: 72px;
+      resize: vertical;
+      border: 1px solid #cfd6dd;
+      border-radius: 10px;
+      padding: 9px 10px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+      line-height: 1.5;
+      outline: none;
+      box-sizing: border-box;
+      margin: 8px 0 10px;
+    }
+
+    .tactic-memo-input:focus {
+      border-color: #7da9df;
+      box-shadow: 0 0 0 3px rgba(47,128,237,.12);
+    }
+
+    .tactic-memo-preview {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    @media (max-width: 520px) {
+      .current-tactic-strip {
+        margin-left: 6px;
+        margin-right: 6px;
+        padding: 7px 8px;
+      }
+
+      .current-tactic-memo {
+        max-width: 62vw;
+      }
+
+      .quick-save-button {
+        min-width: 56px;
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+    }
+
   </style>
 </head>
 
@@ -1000,7 +1124,7 @@
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.49</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.50</span></div>
       <div class="subtitle">駒をドラッグ。アタッカー・リベロをタップして状態を変更できます。戦術は端末内保存に加え、Googleログイン時はFirebaseで端末間同期できます。</div>
     </div>
 
@@ -1012,9 +1136,24 @@
       <button class="toolbar-button" id="pillowToggleBtn">枕なし</button>
       <button class="toolbar-button" id="tacticsBtn">戦術</button>
       <button class="toolbar-button" id="cloudBtn" type="button">☁ 未接続</button>
-      <button class="toolbar-button" id="resetBtn">開始配置</button>
+      <button class="toolbar-button" id="resetBtn">リセット</button>
     </div>
   </header>
+
+
+  <div class="current-tactic-strip" id="currentTacticStrip">
+    <div class="current-tactic-info">
+      <div class="current-tactic-name">
+        <span class="current-tactic-name-text" id="boardTacticName">未保存の配置</span>
+        <span class="current-tactic-dirty" id="boardTacticDirty" hidden>編集中</span>
+      </div>
+      <div class="current-tactic-memo" id="boardTacticMemo">戦術を保存すると名前とメモがここに表示されます。</div>
+    </div>
+    <div class="current-tactic-actions">
+      <button class="toolbar-button quick-save-button" id="quickSaveBtn" type="button">新規保存</button>
+      <button class="toolbar-button camera-button" id="screenshotBtn" type="button" aria-label="戦術画像を作成" title="戦術画像を作成">📷</button>
+    </div>
+  </div>
 
   <main class="stage-wrap">
     <div class="stage" id="stage">
@@ -1107,6 +1246,8 @@
       <button class="toolbar-button" id="saveTacticBtn" type="button">新規保存</button>
     </div>
 
+    <textarea id="tacticMemoInput" class="tactic-memo-input" maxlength="300" placeholder="メモ（任意）&#10;例：初手A1は右寄り。残り30秒で大将を前へ。"></textarea>
+
     <div style="display:flex; gap:8px; margin-bottom:14px;">
       <button class="toolbar-button" id="overwriteTacticBtn" type="button" disabled>現在の戦術に上書き</button>
       <div id="currentTacticLabel" style="align-self:center; font-size:11px; color:var(--muted);"></div>
@@ -1177,11 +1318,18 @@
 
   const tacticsModal = document.getElementById('tacticsModal');
   const tacticNameInput = document.getElementById('tacticNameInput');
+  const tacticMemoInput = document.getElementById('tacticMemoInput');
   const saveTacticBtn = document.getElementById('saveTacticBtn');
   const overwriteTacticBtn = document.getElementById('overwriteTacticBtn');
   const currentTacticLabel = document.getElementById('currentTacticLabel');
   const tacticList = document.getElementById('tacticList');
   const closeTacticsBtn = document.getElementById('closeTacticsBtn');
+
+  const boardTacticName = document.getElementById('boardTacticName');
+  const boardTacticDirty = document.getElementById('boardTacticDirty');
+  const boardTacticMemo = document.getElementById('boardTacticMemo');
+  const quickSaveBtn = document.getElementById('quickSaveBtn');
+  const screenshotBtn = document.getElementById('screenshotBtn');
 
   const membersModal = document.getElementById('membersModal');
   const lineupGrid = document.getElementById('lineupGrid');
@@ -1619,6 +1767,8 @@
           e.preventDefault();
           drawings = drawings.filter(item => item.id !== d.id);
           renderDrawings();
+          updateCurrentTacticBar();
+          updateOverwriteUI();
           showToast('描画を削除しました');
         });
       }
@@ -1700,6 +1850,8 @@
     drawingStart = null;
     previewDrawingEl.replaceChildren();
     renderDrawings();
+    updateCurrentTacticBar();
+    updateOverwriteUI();
 
     try { drawLayer.releasePointerCapture(e.pointerId); } catch {}
   }
@@ -1737,6 +1889,8 @@
     if (!confirm('矢印・線をすべて消しますか？')) return;
     drawings = [];
     renderDrawings();
+    updateCurrentTacticBar();
+    updateOverwriteUI();
     showToast('描画をすべて消しました');
   });
 
@@ -1790,6 +1944,7 @@
     updateSelectionUI();
     applyMode();
     renderDrawings();
+    updateCurrentTacticBar();
   }
 
   function bindDrag(el, p) {
@@ -1834,6 +1989,8 @@
         render();
       } else {
         if (selectedId === p.id) updateSelectionUI();
+        updateCurrentTacticBar();
+        updateOverwriteUI();
       }
     };
 
@@ -1922,6 +2079,7 @@
       if (p) updateLiberoGuardClass(el, p);
     });
     updateSelectionUI();
+    updateCurrentTacticBar();
   }
 
   function updatePillowToggleUI() {
@@ -1969,11 +2127,11 @@
     setDrawTool('move');
     render();
     updatePillowToggleUI();
-    showToast('開始配置に戻しました');
+    showToast('配置をリセットしました');
   }
 
   resetBtn.addEventListener('click', () => {
-    if (!confirm('開始配置に戻しますか？')) return;
+    if (!confirm('配置をリセットしますか？')) return;
     startFormation();
   });
 
@@ -2077,6 +2235,99 @@
     updatePillowToggleUI();
   }
 
+
+  function snapshotComparable(snapshot) {
+    if (!snapshot) return '';
+    return JSON.stringify(snapshot);
+  }
+
+  function currentTacticRecord() {
+    if (!currentTacticId) return null;
+    return getTactics().find(t => t.id === currentTacticId) || null;
+  }
+
+  function isCurrentTacticDirty() {
+    const current = currentTacticRecord();
+    if (!current?.board) return false;
+    return snapshotComparable(current.board) !== snapshotComparable(currentBoardSnapshot());
+  }
+
+  function updateCurrentTacticBar() {
+    if (!boardTacticName || !quickSaveBtn) return;
+
+    const current = currentTacticRecord();
+
+    if (!current) {
+      boardTacticName.textContent = '未保存の配置';
+      boardTacticDirty.hidden = true;
+      boardTacticMemo.textContent = '戦術を保存すると名前とメモがここに表示されます。';
+      quickSaveBtn.textContent = '新規保存';
+      return;
+    }
+
+    boardTacticName.textContent = current.name || '名称未設定';
+    boardTacticDirty.hidden = !isCurrentTacticDirty();
+    boardTacticMemo.textContent = current.memo?.trim() || 'メモなし';
+    quickSaveBtn.textContent = '上書き';
+  }
+
+  function fillTacticEditorFromCurrent() {
+    const current = currentTacticRecord();
+
+    if (current) {
+      tacticNameInput.value = current.name || '';
+      tacticMemoInput.value = current.memo || '';
+    } else {
+      tacticNameInput.value = '';
+      tacticMemoInput.value = '';
+    }
+  }
+
+  function overwriteCurrentTactic({ updateMetadata = false } = {}) {
+    if (!currentTacticId) {
+      showToast('上書きする戦術を先に開いてください');
+      return false;
+    }
+
+    const tactics = getTactics();
+    const index = tactics.findIndex(t => t.id === currentTacticId);
+
+    if (index < 0) {
+      currentTacticId = null;
+      updateOverwriteUI();
+      updateCurrentTacticBar();
+      showToast('保存元の戦術が見つかりません');
+      return false;
+    }
+
+    const updated = {
+      ...tactics[index],
+      updatedAt: Date.now(),
+      board: currentBoardSnapshot()
+    };
+
+    if (updateMetadata) {
+      const newName = tacticNameInput.value.trim();
+      if (!newName) {
+        showToast('戦術名を入力してください');
+        tacticNameInput.focus();
+        return false;
+      }
+
+      updated.name = newName.slice(0, 30);
+      updated.memo = tacticMemoInput.value.trim().slice(0, 300);
+    }
+
+    tactics[index] = updated;
+    setTactics(tactics);
+    currentTacticId = updated.id;
+    renderTacticList();
+    updateOverwriteUI();
+    updateCurrentTacticBar();
+    showToast(`「${updated.name}」を上書きしました`);
+    return true;
+  }
+
   function tacticMetaText(tactic) {
     const d = new Date(tactic.updatedAt || tactic.createdAt || Date.now());
     const dateText = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
@@ -2091,11 +2342,15 @@
 
     if (current) {
       overwriteTacticBtn.disabled = false;
-      currentTacticLabel.textContent = `編集中：${current.name}`;
+      currentTacticLabel.textContent = isCurrentTacticDirty()
+        ? `編集中：${current.name}（未保存の変更あり）`
+        : `編集中：${current.name}`;
     } else {
       overwriteTacticBtn.disabled = true;
       currentTacticLabel.textContent = '保存済み戦術を開くと上書きできます';
     }
+
+    updateCurrentTacticBar();
   }
 
   function renderTacticList() {
@@ -2125,6 +2380,13 @@
 
       info.append(name, meta);
 
+      if (tactic.memo?.trim()) {
+        const memo = document.createElement('div');
+        memo.className = 'tactic-memo-preview';
+        memo.textContent = tactic.memo.trim();
+        info.appendChild(memo);
+      }
+
       const load = document.createElement('button');
       load.className = 'mini-button';
       load.type = 'button';
@@ -2134,6 +2396,7 @@
           applyBoardSnapshot(tactic.board);
           currentTacticId = tactic.id;
           updateOverwriteUI();
+          updateCurrentTacticBar();
           tacticsModal.hidden = true;
           showToast(`「${tactic.name}」を開きました`);
         } catch {
@@ -2152,6 +2415,7 @@
         if (currentTacticId === tactic.id) currentTacticId = null;
         renderTacticList();
         updateOverwriteUI();
+        updateCurrentTacticBar();
         showToast('戦術を削除しました');
       });
 
@@ -2163,7 +2427,22 @@
   tacticsBtn.addEventListener('click', () => {
     renderTacticList();
     updateOverwriteUI();
+    fillTacticEditorFromCurrent();
+    tacticsModal.hidden = false;
+    setTimeout(() => tacticNameInput.focus(), 30);
+  });
+
+
+  quickSaveBtn.addEventListener('click', () => {
+    if (currentTacticRecord()) {
+      overwriteCurrentTactic({ updateMetadata: false });
+      return;
+    }
+
+    renderTacticList();
+    updateOverwriteUI();
     tacticNameInput.value = '';
+    tacticMemoInput.value = '';
     tacticsModal.hidden = false;
     setTimeout(() => tacticNameInput.focus(), 30);
   });
@@ -2189,6 +2468,7 @@
     const tactic = {
       id: `t-${now}-${Math.random().toString(36).slice(2,7)}`,
       name: name.slice(0, 30),
+      memo: tacticMemoInput.value.trim().slice(0, 300),
       createdAt: now,
       updatedAt: now,
       board: currentBoardSnapshot()
@@ -2198,41 +2478,182 @@
     setTactics(tactics);
     currentTacticId = tactic.id;
     tacticNameInput.value = '';
+    tacticMemoInput.value = '';
     renderTacticList();
     updateOverwriteUI();
+    updateCurrentTacticBar();
     showToast(`「${tactic.name}」を保存しました`);
   });
 
   overwriteTacticBtn.addEventListener('click', () => {
-    if (!currentTacticId) {
-      showToast('上書きする戦術を先に開いてください');
-      return;
-    }
-
-    const tactics = getTactics();
-    const index = tactics.findIndex(t => t.id === currentTacticId);
-
-    if (index < 0) {
-      currentTacticId = null;
-      updateOverwriteUI();
-      showToast('保存元の戦術が見つかりません');
-      return;
-    }
-
-    tactics[index] = {
-      ...tactics[index],
-      updatedAt: Date.now(),
-      board: currentBoardSnapshot()
-    };
-
-    const overwrittenId = tactics[index].id;
-    setTactics(tactics);
-    currentTacticId = overwrittenId;
-    renderTacticList();
-    updateOverwriteUI();
-    showToast(`「${tactics[index].name}」を上書きしました`);
+    overwriteCurrentTactic({ updateMetadata: true });
   });
 
+
+
+
+  function currentScreenshotTitle() {
+    return currentTacticRecord()?.name || '未保存の配置';
+  }
+
+  function currentScreenshotMemo() {
+    return currentTacticRecord()?.memo?.trim() || '';
+  }
+
+  function escapeXmlText(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
+  }
+
+  async function createTacticImageBlob() {
+    const stageRect = stage.getBoundingClientRect();
+    if (!stageRect.width || !stageRect.height) throw new Error('stage-size');
+
+    const exportWidth = 1080;
+    const boardHeight = Math.round(exportWidth * (stageRect.height / stageRect.width));
+    const title = currentScreenshotTitle();
+    const memo = currentScreenshotMemo();
+    const headerHeight = memo ? 150 : 108;
+    const totalHeight = headerHeight + boardHeight + 28;
+
+    const stageClone = stage.cloneNode(true);
+    stageClone.querySelector('.hint')?.remove();
+    stageClone.style.width = `${exportWidth}px`;
+    stageClone.style.height = `${boardHeight}px`;
+    stageClone.style.maxWidth = 'none';
+    stageClone.style.margin = '0';
+    stageClone.style.transform = 'none';
+
+    const styles = Array.from(document.querySelectorAll('style'))
+      .map(style => style.textContent || '')
+      .join('\n');
+
+    const wrapper = document.createElement('div');
+    wrapper.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+    wrapper.style.width = `${exportWidth}px`;
+    wrapper.style.height = `${totalHeight}px`;
+    wrapper.style.background = '#f5f5f2';
+    wrapper.style.boxSizing = 'border-box';
+    wrapper.style.fontFamily = '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+
+    const styleEl = document.createElement('style');
+    styleEl.textContent = styles + `
+      * { box-sizing: border-box; }
+      .stage { width:${exportWidth}px !important; height:${boardHeight}px !important; max-width:none !important; }
+    `;
+    wrapper.appendChild(styleEl);
+
+    const header = document.createElement('div');
+    header.style.height = `${headerHeight}px`;
+    header.style.padding = '24px 32px 16px';
+    header.style.background = '#ffffff';
+    header.style.borderBottom = '1px solid #dfe4e8';
+
+    const titleEl = document.createElement('div');
+    titleEl.style.fontSize = '28px';
+    titleEl.style.fontWeight = '900';
+    titleEl.style.color = '#27313a';
+    titleEl.textContent = title;
+    header.appendChild(titleEl);
+
+    if (memo) {
+      const memoEl = document.createElement('div');
+      memoEl.style.marginTop = '10px';
+      memoEl.style.fontSize = '17px';
+      memoEl.style.lineHeight = '1.45';
+      memoEl.style.color = '#65717b';
+      memoEl.style.whiteSpace = 'pre-wrap';
+      memoEl.style.overflow = 'hidden';
+      memoEl.textContent = memo;
+      header.appendChild(memoEl);
+    }
+
+    wrapper.appendChild(header);
+    wrapper.appendChild(stageClone);
+
+    const serialized = new XMLSerializer().serializeToString(wrapper);
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${exportWidth}" height="${totalHeight}">
+        <foreignObject width="100%" height="100%">
+          ${serialized}
+        </foreignObject>
+      </svg>
+    `;
+
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl = URL.createObjectURL(svgBlob);
+
+    try {
+      const img = new Image();
+      const loaded = new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+      img.src = svgUrl;
+      await loaded;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = exportWidth;
+      canvas.height = totalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f5f5f2';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      return await new Promise((resolve, reject) => {
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else reject(new Error('blob-failed'));
+        }, 'image/png', 1);
+      });
+    } finally {
+      URL.revokeObjectURL(svgUrl);
+    }
+  }
+
+  screenshotBtn.addEventListener('click', async () => {
+    const original = screenshotBtn.textContent;
+    screenshotBtn.disabled = true;
+    screenshotBtn.textContent = '…';
+
+    try {
+      const blob = await createTacticImageBlob();
+      const safeName = currentScreenshotTitle()
+        .replace(/[\\/:*?"<>|]/g, '_')
+        .slice(0, 40) || '戦術ボード';
+      const file = new File([blob], `${safeName}.png`, { type: 'image/png' });
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: currentScreenshotTitle()
+          });
+          showToast('戦術画像を共有しました');
+        } catch (error) {
+          if (error?.name !== 'AbortError') throw error;
+        }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        showToast('戦術画像を作成しました');
+      }
+    } catch (error) {
+      console.error('Screenshot export failed:', error);
+      showToast('画像を作成できませんでした');
+    } finally {
+      screenshotBtn.disabled = false;
+      screenshotBtn.textContent = original;
+    }
+  });
 
 
   function exportCloudData() {
@@ -2266,6 +2687,7 @@
 
     render();
     updatePillowToggleUI();
+    updateCurrentTacticBar();
     if (!tacticsModal.hidden) {
       renderTacticList();
       updateOverwriteUI();
