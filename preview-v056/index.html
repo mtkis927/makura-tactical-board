@@ -1152,6 +1152,21 @@
       font-weight: 900;
     }
 
+    .current-member-set-name {
+      flex: 0 1 auto;
+      max-width: 42%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #1769aa;
+      background: #eaf3ff;
+      border: 1px solid #b8d4f2;
+      border-radius: 999px;
+      padding: 2px 6px;
+      font-size: 9px;
+      font-weight: 900;
+    }
+
     .current-tactic-name-text {
       min-width: 0;
       overflow: hidden;
@@ -1383,6 +1398,7 @@
   <div class="current-tactic-strip" id="currentTacticStrip">
     <div class="current-tactic-info">
       <div class="current-tactic-name">
+        <span class="current-member-set-name" id="boardMemberSetName">現在のメンバー</span>
         <span class="current-tactic-name-text" id="boardTacticName">未保存の配置</span>
         <span class="current-tactic-dirty" id="boardTacticDirty" hidden>編集中</span>
       </div>
@@ -1588,6 +1604,7 @@
   const closeTacticsBtn = document.getElementById('closeTacticsBtn');
 
   const boardTacticName = document.getElementById('boardTacticName');
+  const boardMemberSetName = document.getElementById('boardMemberSetName');
   const boardTacticDirty = document.getElementById('boardTacticDirty');
   const boardTacticMemo = document.getElementById('boardTacticMemo');
   const quickSaveBtn = document.getElementById('quickSaveBtn');
@@ -1927,6 +1944,7 @@
     memberSetNameInput.value = activeMemberSet().name;
     renderTeamLineup(lineupGrid, lineupSlotIds, 'bench1');
     renderTeamLineup(enemyRosterGrid, enemyLineupSlotIds, 'enemy-bench1');
+    updateCurrentTacticBar();
   }
 
   function renderTeamLineup(grid, slotIds, firstBenchId) {
@@ -2776,6 +2794,7 @@
 
   function updateCurrentTacticBar() {
     if (!boardTacticName || !quickSaveBtn) return;
+    boardMemberSetName.textContent = activeMemberSet().name || 'メンバーセット';
 
     const current = currentTacticRecord();
 
@@ -3045,6 +3064,10 @@
     return currentTacticRecord()?.memo?.trim() || '';
   }
 
+  function currentScreenshotSetName() {
+    return activeMemberSet().name || 'メンバーセット';
+  }
+
   function canvasRoundRect(ctx, x, y, w, h, r) {
     const radius = Math.max(0, Math.min(r, w / 2, h / 2));
     ctx.beginPath();
@@ -3108,8 +3131,9 @@
     const width = 1080;
     const boardHeight = Math.round(width / 0.82);
     const title = currentScreenshotTitle();
+    const setName = currentScreenshotSetName();
     const memo = currentScreenshotMemo();
-    const headerHeight = memo ? 152 : 104;
+    const headerHeight = memo ? 180 : 132;
     const totalHeight = headerHeight + boardHeight + 24;
 
     const canvas = document.createElement('canvas');
@@ -3132,16 +3156,21 @@
     ctx.lineTo(width, headerHeight - 1);
     ctx.stroke();
 
+    ctx.fillStyle = '#1769aa';
+    ctx.font = '800 18px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText(setName, 34, 22);
+
     ctx.fillStyle = '#27313a';
     ctx.font = '900 30px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
     ctx.textBaseline = 'top';
-    ctx.fillText(title, 34, 24);
+    ctx.fillText(title, 34, 52);
 
     if (memo) {
       ctx.fillStyle = '#65717b';
       ctx.font = '500 18px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
       const lines = wrapCanvasText(ctx, memo, width - 68, 2);
-      lines.forEach((line, i) => ctx.fillText(line, 34, 70 + i * 28));
+      lines.forEach((line, i) => ctx.fillText(line, 34, 98 + i * 28));
     }
 
     // Board frame
