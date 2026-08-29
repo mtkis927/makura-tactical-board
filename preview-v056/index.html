@@ -679,18 +679,29 @@
       box-shadow: 0 0 0 3px rgba(47,128,237,.12);
     }
 
-    .member-set-tools {
+    .member-set-toolbar {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1fr) 42px;
       gap: 5px;
       margin-bottom: 7px;
     }
 
-    .member-set-tools select,
-    .member-set-tools input { grid-column: 1 / -1; min-height:38px; font-size:13px; }
+    .member-set-menu {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 5px;
+      margin-bottom: 7px;
+      padding: 7px;
+      border: 1px solid #dce2e7;
+      border-radius: 9px;
+      background: #f7f9fa;
+    }
+    .member-set-menu[hidden] { display:none; }
 
-    .member-set-tools select,
-    .member-set-tools input,
+    .member-set-menu input { grid-column: 1 / -1; min-height:38px; font-size:13px; }
+
+    .member-set-toolbar select,
+    .member-set-menu input,
     .hand-select {
       min-width: 0;
       border: 1px solid #cfd6dd;
@@ -701,6 +712,17 @@
       font-weight: 800;
       min-height:38px;
       font-size:12px;
+    }
+
+    .member-set-more {
+      border: 1px solid #cfd6dd;
+      border-radius: 9px;
+      background: #f3f5f7;
+      color: var(--text);
+      min-height: 38px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1px;
     }
 
     .enemy-roster-row {
@@ -1443,8 +1465,11 @@
       <button class="member-tab" id="enemyMembersTab" type="button" role="tab" aria-selected="false">相手チーム</button>
     </div>
 
-    <div class="member-set-tools">
+    <div class="member-set-toolbar">
       <select id="memberSetSelect" aria-label="大会メンバーセット"></select>
+      <button class="member-set-more" id="memberSetMenuBtn" type="button" aria-label="セット操作" aria-expanded="false">•••</button>
+    </div>
+    <div class="member-set-menu" id="memberSetMenu" hidden>
       <input id="memberSetNameInput" type="text" maxlength="30" placeholder="大会名" aria-label="大会名" />
       <button class="mini-button" id="newMemberSetBtn" type="button">新規</button>
       <button class="mini-button" id="duplicateMemberSetBtn" type="button">複製</button>
@@ -1564,6 +1589,8 @@
   const lineupGrid = document.getElementById('lineupGrid');
   const enemyRosterGrid = document.getElementById('enemyRosterGrid');
   const memberSetSelect = document.getElementById('memberSetSelect');
+  const memberSetMenuBtn = document.getElementById('memberSetMenuBtn');
+  const memberSetMenu = document.getElementById('memberSetMenu');
   const memberSetNameInput = document.getElementById('memberSetNameInput');
   const newMemberSetBtn = document.getElementById('newMemberSetBtn');
   const duplicateMemberSetBtn = document.getElementById('duplicateMemberSetBtn');
@@ -1846,6 +1873,8 @@
   }
 
   function renderLineupModal() {
+    memberSetMenu.hidden = true;
+    memberSetMenuBtn.setAttribute('aria-expanded', 'false');
     memberSetSelect.replaceChildren();
     memberSets.forEach(set => {
       const option = document.createElement('option');
@@ -1987,6 +2016,12 @@
 
   ownMembersTab.addEventListener('click', () => setMemberEditorTeam('mine'));
   enemyMembersTab.addEventListener('click', () => setMemberEditorTeam('enemy'));
+  memberSetMenuBtn.addEventListener('click', () => {
+    const willOpen = memberSetMenu.hidden;
+    memberSetMenu.hidden = !willOpen;
+    memberSetMenuBtn.setAttribute('aria-expanded', String(willOpen));
+    if (willOpen) memberSetNameInput.focus();
+  });
 
   memberSetSelect.addEventListener('change', () => {
     selectMemberSet(memberSetSelect.value);
