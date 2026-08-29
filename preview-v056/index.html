@@ -1020,6 +1020,15 @@
       gap: 8px;
     }
 
+    .tactic-group-title {
+      margin-top: 5px;
+      padding: 7px 4px 3px;
+      border-bottom: 1px solid #dfe4e8;
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--text);
+    }
+
     .tactic-empty {
       color: var(--muted);
       font-size: 13px;
@@ -1485,7 +1494,6 @@
       <div class="lineup-grid" id="lineupGrid"></div>
     </div>
     <div class="member-panel" id="enemyMembersPanel" role="tabpanel" hidden>
-      <div class="member-note" style="margin:0 0 10px;">相手の名前・ゼッケン番号と利き腕を必要なときだけ登録できます。</div>
       <div class="enemy-roster-grid" id="enemyRosterGrid"></div>
     </div>
   </div>
@@ -1500,7 +1508,7 @@
       <button class="toolbar-button" id="saveTacticBtn" type="button">新規保存</button>
     </div>
 
-    <textarea id="tacticMemoInput" class="tactic-memo-input" maxlength="300" placeholder="メモ（任意）&#10;例：初手A1は右寄り。残り30秒で大将を前へ。"></textarea>
+    <textarea id="tacticMemoInput" class="tactic-memo-input" maxlength="300" placeholder="メモ（任意）"></textarea>
 
     <div style="display:flex; gap:8px; margin-bottom:14px;">
       <button class="toolbar-button" id="overwriteTacticBtn" type="button" disabled>現在の戦術に上書き</button>
@@ -1621,7 +1629,7 @@
   const MEMBERS_KEY = 'makura-members-v1-preview-v056';
   const MEMBER_SETS_KEY = 'makura-member-sets-v2-preview-v056';
   const ACTIVE_MEMBER_SET_KEY = 'makura-active-member-set-v2-preview-v056';
-  const enemyPlayerIds = ['enemy-cap','enemy-lib','enemy-a1','enemy-a2','enemy-a3'];
+  const enemyLegacyPositionIds = ['enemy-cap','enemy-lib','enemy-a1','enemy-a2','enemy-a3'];
   let memberSets = loadMemberSets();
   let activeMemberSetId = localStorage.getItem(ACTIVE_MEMBER_SET_KEY) || memberSets[0].id;
   if (!memberSets.some(set => set.id === activeMemberSetId)) activeMemberSetId = memberSets[0].id;
@@ -1647,6 +1655,11 @@
     { id:'enemy-a2', kind:'player', team:'enemy', role:'attacker', number:2, label:'A2', x:.416, y:.068, out:false },
     { id:'enemy-a3', kind:'player', team:'enemy', role:'attacker', number:3, label:'A3', x:.566, y:.068, out:false },
     { id:'enemy-lib', kind:'player', team:'enemy', role:'libero', label:'L', x:.716, y:.068, out:false },
+
+    // 相手チームサポート：自チームと対称に上側右端へ3人
+    { id:'enemy-s1', kind:'player', team:'enemy', role:'support', number:1, label:'S1', x:.840, y:.068, out:false },
+    { id:'enemy-s2', kind:'player', team:'enemy', role:'support', number:2, label:'S2', x:.890, y:.068, out:false },
+    { id:'enemy-s3', kind:'player', team:'enemy', role:'support', number:3, label:'S3', x:.940, y:.068, out:false },
 
     // 枕：各コートの前端から1.8mラインに5個横並び
     { id:'mp1', kind:'pillow', team:'mine', x:.32, y:.694 },
@@ -1677,7 +1690,11 @@
   }
 
   function blankEnemies() {
-    return enemyPlayerIds.map(id => ({ id, name:'', hand:'' }));
+    return Array.from({length: 10}, (_, i) => ({
+      id: `e${i + 1}`,
+      name: '',
+      hand: ''
+    }));
   }
 
   function normalizeHand(value) {
@@ -1698,8 +1715,9 @@
 
   function normalizeEnemies(list) {
     const byId = new Map((Array.isArray(list) ? list : []).map(m => [m.id, m]));
-    return blankEnemies().map(base => {
-      const saved = byId.get(base.id) || {};
+    return blankEnemies().map((base, index) => {
+      const legacyId = enemyLegacyPositionIds[index];
+      const saved = byId.get(base.id) || (legacyId ? byId.get(legacyId) : null) || {};
       return {
         id: base.id,
         name: typeof saved.name === 'string' ? Array.from(saved.name.trim()).slice(0, 2).join('') : '',
@@ -1786,12 +1804,19 @@
   function playerProfile(p) {
     if (!p || p.kind !== 'player') return null;
     if (p.team === 'mine') return members.find(m => m.id === p.memberId) || null;
-    return activeMemberSet().enemies.find(m => m.id === p.id) || null;
+    return activeMemberSet().enemies.find(m => m.id === p.memberId)
+      || activeMemberSet().enemies.find(m => m.id === p.id)
+      || null;
   }
 
   const ownPositionIds = [
     'mine-cap', 'mine-lib', 'mine-a1', 'mine-a2',
     'mine-a3', 'mine-s1', 'mine-s2', 'mine-s3'
+  ];
+
+  const enemyPositionIds = [
+    'enemy-cap', 'enemy-lib', 'enemy-a1', 'enemy-a2',
+    'enemy-a3', 'enemy-s1', 'enemy-s2', 'enemy-s3'
   ];
 
   const ownPositionLabels = {
@@ -1811,6 +1836,12 @@
     'bench1', 'bench2'
   ];
 
+  const enemyLineupSlotIds = [
+    'enemy-cap', 'enemy-lib', 'enemy-a1', 'enemy-a2',
+    'enemy-a3', 'enemy-s1', 'enemy-s2', 'enemy-s3',
+    'enemy-bench1', 'enemy-bench2'
+  ];
+
   const lineupSlotLabels = {
     'mine-cap': '大将',
     'mine-lib': 'L',
@@ -1823,6 +1854,11 @@
     'bench1': '控え1',
     'bench2': '控え2'
   };
+  Object.assign(lineupSlotLabels, {
+    'enemy-cap':'大将', 'enemy-lib':'L', 'enemy-a1':'A1', 'enemy-a2':'A2',
+    'enemy-a3':'A3', 'enemy-s1':'S1', 'enemy-s2':'S2', 'enemy-s3':'S3',
+    'enemy-bench1':'控え1', 'enemy-bench2':'控え2'
+  });
 
   let draftMembers = [];
   let draftEnemies = [];
@@ -1841,35 +1877,39 @@
     enemyMembersPanel.hidden = own;
   }
 
-  function buildCurrentLineupSlots() {
+  function buildCurrentLineupSlots(team = 'mine') {
     const result = {};
     const used = new Set();
+    const positionIds = team === 'enemy' ? enemyPositionIds : ownPositionIds;
+    const profiles = team === 'enemy' ? activeMemberSet().enemies : members;
+    const benchIds = team === 'enemy' ? ['enemy-bench1','enemy-bench2'] : ['bench1','bench2'];
 
-    ownPositionIds.forEach(pieceId => {
+    positionIds.forEach(pieceId => {
       const p = pieces.find(piece => piece.id === pieceId);
       const memberId = p?.memberId || '';
 
-      if (memberId && members.some(m => m.id === memberId) && !used.has(memberId)) {
+      if (memberId && profiles.some(m => m.id === memberId) && !used.has(memberId)) {
         result[pieceId] = memberId;
         used.add(memberId);
       }
     });
 
-    const remaining = members.map(m => m.id).filter(id => !used.has(id));
+    const remaining = profiles.map(m => m.id).filter(id => !used.has(id));
 
-    ownPositionIds.forEach(pieceId => {
+    positionIds.forEach(pieceId => {
       if (!result[pieceId]) result[pieceId] = remaining.shift() || '';
     });
 
-    result.bench1 = remaining.shift() || '';
-    result.bench2 = remaining.shift() || '';
+    result[benchIds[0]] = remaining.shift() || '';
+    result[benchIds[1]] = remaining.shift() || '';
 
     return result;
   }
 
   function draftMemberBySlot(slotId) {
     const memberId = draftSlots[slotId];
-    return draftMembers.find(m => m.id === memberId) || null;
+    const profiles = slotId.startsWith('enemy-') ? draftEnemies : draftMembers;
+    return profiles.find(m => m.id === memberId) || null;
   }
 
   function renderLineupModal() {
@@ -1885,14 +1925,18 @@
     });
     deleteMemberSetBtn.disabled = memberSets.length <= 1;
     memberSetNameInput.value = activeMemberSet().name;
-    lineupGrid.replaceChildren();
+    renderTeamLineup(lineupGrid, lineupSlotIds, 'bench1');
+    renderTeamLineup(enemyRosterGrid, enemyLineupSlotIds, 'enemy-bench1');
+  }
 
-    lineupSlotIds.forEach(slotId => {
-      if (slotId === 'bench1') {
+  function renderTeamLineup(grid, slotIds, firstBenchId) {
+    grid.replaceChildren();
+    slotIds.forEach(slotId => {
+      if (slotId === firstBenchId) {
         const divider = document.createElement('div');
         divider.className = 'lineup-divider';
         divider.textContent = '控え';
-        lineupGrid.appendChild(divider);
+        grid.appendChild(divider);
       }
 
       const row = document.createElement('div');
@@ -1962,53 +2006,14 @@
       bindLineupDrag(grip, slotId);
 
       row.append(grip, role, input, hand);
-      lineupGrid.appendChild(row);
-    });
-
-    renderEnemyRoster();
-  }
-
-  function renderEnemyRoster() {
-    enemyRosterGrid.replaceChildren();
-    const labels = {'enemy-cap':'大将','enemy-lib':'L','enemy-a1':'A1','enemy-a2':'A2','enemy-a3':'A3'};
-    draftEnemies.forEach(enemy => {
-      const row = document.createElement('div');
-      row.className = 'enemy-roster-row';
-      const label = document.createElement('label');
-      label.textContent = labels[enemy.id] || enemy.id;
-      const input = document.createElement('input');
-      input.className = 'lineup-input';
-      input.value = enemy.name || '';
-      input.placeholder = '名前・番号';
-      let composing = false;
-      const commit = () => {
-        if (composing) return;
-        enemy.name = Array.from(input.value.trim()).slice(0,2).join('');
-        input.value = enemy.name;
-      };
-      input.addEventListener('compositionstart', () => { composing = true; });
-      input.addEventListener('compositionend', () => { composing = false; commit(); });
-      input.addEventListener('input', commit);
-      input.addEventListener('blur', commit);
-      const hand = document.createElement('select');
-      hand.className = 'hand-select';
-      [['','未設定'],['right','右利き'],['left','左利き'],['both','両利き']].forEach(([value, text]) => {
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = text;
-        hand.appendChild(option);
-      });
-      hand.value = enemy.hand || '';
-      hand.addEventListener('change', () => { enemy.hand = normalizeHand(hand.value); });
-      row.append(label, input, hand);
-      enemyRosterGrid.appendChild(row);
+      grid.appendChild(row);
     });
   }
 
   function openMembersModal() {
     draftMembers = clone(members);
     draftEnemies = clone(activeMemberSet().enemies);
-    draftSlots = buildCurrentLineupSlots();
+    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
     renderLineupModal();
     setMemberEditorTeam('mine');
     membersModal.hidden = false;
@@ -2027,24 +2032,22 @@
     selectMemberSet(memberSetSelect.value);
     draftMembers = clone(members);
     draftEnemies = clone(activeMemberSet().enemies);
-    draftSlots = buildCurrentLineupSlots();
+    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
     renderLineupModal();
   });
 
   newMemberSetBtn.addEventListener('click', () => {
-    const name = memberSetNameInput.value.trim();
-    if (!name) {
-      showToast('大会名を入力してください');
-      memberSetNameInput.focus();
-      return;
-    }
+    const baseName = '新規チーム';
+    let name = baseName;
+    let suffix = 2;
+    while (memberSets.some(item => item.name === name)) name = `${baseName}${suffix++}`;
     const set = makeMemberSet(name);
     memberSets.push(set);
     selectMemberSet(set.id);
     saveMembersToStorage();
     draftMembers = clone(members);
     draftEnemies = clone(activeMemberSet().enemies);
-    draftSlots = buildCurrentLineupSlots();
+    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
     renderLineupModal();
   });
 
@@ -2058,7 +2061,7 @@
     saveMembersToStorage();
     draftMembers = clone(members);
     draftEnemies = clone(activeMemberSet().enemies);
-    draftSlots = buildCurrentLineupSlots();
+    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
     renderLineupModal();
   });
 
@@ -2086,7 +2089,7 @@
     saveMembersToStorage();
     draftMembers = clone(members);
     draftEnemies = clone(activeMemberSet().enemies);
-    draftSlots = buildCurrentLineupSlots();
+    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
     renderLineupModal();
   });
 
@@ -2633,7 +2636,7 @@
   function startFormation() {
     const assignments = new Map(
       pieces
-        .filter(p => p.team === 'mine' && p.kind === 'player' && p.memberId)
+        .filter(p => p.kind === 'player' && p.memberId)
         .map(p => [p.id, p.memberId])
     );
 
@@ -2679,6 +2682,15 @@
     saveMembersToStorage();
 
     ownPositionIds.forEach(pieceId => {
+      const p = pieces.find(piece => piece.id === pieceId);
+      if (!p) return;
+
+      const memberId = draftSlots[pieceId] || '';
+      if (memberId) p.memberId = memberId;
+      else delete p.memberId;
+    });
+
+    enemyPositionIds.forEach(pieceId => {
       const p = pieces.find(piece => piece.id === pieceId);
       if (!p) return;
 
@@ -2848,8 +2860,7 @@
     const d = new Date(tactic.updatedAt || tactic.createdAt || Date.now());
     const dateText = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     const drawingCount = Array.isArray(tactic.board?.drawings) ? tactic.board.drawings.length : 0;
-    const setName = memberSets.find(set => set.id === tactic.memberSetId)?.name || '現在のメンバー';
-    return `${dateText} ・ ${setName} ・ 描画 ${drawingCount}本`;
+    return `${dateText} ・ 描画 ${drawingCount}本`;
   }
 
 
@@ -2871,7 +2882,11 @@
   }
 
   function renderTacticList() {
-    const tactics = getTactics().sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    const setOrder = new Map(memberSets.map((set, index) => [set.id, set.id === activeMemberSetId ? -1 : index]));
+    const tactics = getTactics().sort((a,b) => {
+      const groupDiff = (setOrder.get(a.memberSetId) ?? 9999) - (setOrder.get(b.memberSetId) ?? 9999);
+      return groupDiff || (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
     tacticList.replaceChildren();
 
     if (!tactics.length) {
@@ -2882,7 +2897,16 @@
       return;
     }
 
+    let currentGroup = null;
     tactics.forEach(tactic => {
+      const groupId = tactic.memberSetId || 'legacy';
+      if (groupId !== currentGroup) {
+        currentGroup = groupId;
+        const heading = document.createElement('div');
+        heading.className = 'tactic-group-title';
+        heading.textContent = memberSets.find(set => set.id === groupId)?.name || '現在のメンバー';
+        tacticList.appendChild(heading);
+      }
       const item = document.createElement('div');
       item.className = 'tactic-item';
 
