@@ -1,0 +1,3661 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="まくら戦術" />
+  <meta name="theme-color" content="#f5f5f2" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="まくら戦術" />
+
+  <title>まくら投げ戦術ボード Ver.0.56</title>
+  <style>
+    :root {
+      --bg: #f5f5f2;
+      --panel: #fffefa;
+      --text: #26313a;
+      --muted: #66717d;
+      --line: #59656f;
+      --mine: #C96A4A;
+      --enemy: #3F4852;
+      --support: #6F8F72;
+      --pillow: #2F80ED;
+      --libero-area: rgba(63, 191, 219, .18);
+      --captain-area: rgba(244, 117, 172, .16);
+      --support-area: rgba(55, 168, 91, .11);
+      --danger: #d93025;
+      --shadow: 0 7px 22px rgba(0,0,0,.08);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+    button { font: inherit; }
+
+    .app {
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      gap: 8px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-wrap { min-width: 0; }
+    .title { font-weight: 800; font-size: 18px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .subtitle { margin-top: 3px; font-size: 11px; color: var(--muted); }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: nowrap;
+    }
+
+    .segmented {
+      display: inline-flex;
+      padding: 3px;
+      border-radius: 10px;
+      background: #e8ebee;
+    }
+
+    .segmented button {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .segmented button.active {
+      background: #fff;
+      color: var(--text);
+      box-shadow: 0 1px 5px rgba(0,0,0,.12);
+    }
+
+    .toolbar-button {
+      border: 1px solid #d9dde2;
+      background: #fff;
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+
+    .toolbar-button:active { transform: translateY(1px); }
+
+    .stage-wrap {
+      min-height: 0;
+      min-width: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .stage {
+      position: relative;
+      width: min(100%, calc((100dvh - 132px) * .82));
+      aspect-ratio: .82 / 1;
+      background: #f9fafb;
+      border: 1px solid #d9dde2;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+    }
+
+    /* tactical board geometry */
+    .court-wrap {
+      position: absolute;
+      left: 18%;
+      right: 18%;
+      top: 12%;
+      bottom: 12%;
+    }
+
+    .team-court {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 40.909%;
+      border: 2px solid var(--line);
+      background:
+        linear-gradient(to bottom, transparent 19.7%, rgba(60,70,80,.22) 20%, transparent 20.3%,
+                                  transparent 39.7%, rgba(60,70,80,.22) 40%, transparent 40.3%,
+                                  transparent 59.7%, rgba(60,70,80,.22) 60%, transparent 60.3%,
+                                  transparent 79.7%, rgba(60,70,80,.22) 80%, transparent 80.3%),
+        linear-gradient(to right, transparent 24.7%, rgba(60,70,80,.19) 25%, transparent 25.3%,
+                                    transparent 49.7%, rgba(60,70,80,.19) 50%, transparent 50.3%,
+                                    transparent 74.7%, rgba(60,70,80,.19) 75%, transparent 75.3%);
+      background-color: #f6f1e6;
+    }
+
+    .team-court.enemy { top: 0; }
+    .team-court.mine { bottom: 0; }
+
+    .center-gap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 40.909%;
+      height: 18.182%;
+      background: transparent;
+      border: 0;
+    }
+
+    .center-line {
+      display: none;
+    }
+
+    .zone {
+      position: absolute;
+      top: auto;
+      bottom: auto;
+      pointer-events: none;
+    }
+
+    /* 4.5m court: captain 2.7m (60%), neutral 0.9m, libero 0.9m */
+    .enemy-captain { left: 0; right: 0; top: 0; height: 24.545%; background: var(--captain-area); }
+    .enemy-libero { left: 0; right: 0; top: 32.727%; height: 8.182%; background: var(--libero-area); }
+    .mine-libero { left: 0; right: 0; top: 59.091%; height: 8.182%; background: var(--libero-area); }
+    .mine-captain { left: 0; right: 0; top: 75.455%; height: 24.545%; background: var(--captain-area); }
+
+    .pillow-start {
+      position: absolute;
+      left: 0;
+      right: 0;
+      border-top: 0;
+      pointer-events: none;
+    }
+    /* 1.8m from the front edge of each 4.5m court */
+    .pillow-start.enemy { top: 24.545%; }
+    .pillow-start.mine { top: 75.455%; }
+
+
+    /* 待機・OUT用の布団：上下に並ぶ無地の四角 */
+    .futon {
+      position: absolute;
+      width: 5.2%;
+      height: 8.8%;
+      border-radius: 3px;
+      background: #dfe3e7;
+      border: 1px solid #bcc4cb;
+      box-shadow: none;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* 相手側はコート上、自チーム側はコート下。同じ高さ・同じ間隔。 */
+    .futon.external.enemy { top: 1.5%; }
+    .futon.external.mine  { top: 89.7%; }
+
+    .futon.external.f1 { left: 24%; }
+    .futon.external.f2 { left: 39%; }
+    .futon.external.f3 { left: 54%; }
+    .futon.external.f4 { left: 69%; }
+
+    .piece {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: clamp(30px, 4.1vw, 46px);
+      height: clamp(30px, 4.1vw, 46px);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: clamp(10px, 1.3vw, 13px);
+      color: #fff;
+      border: 2px solid rgba(255,255,255,.92);
+      box-shadow: 0 3px 8px rgba(0,0,0,.18);
+      z-index: 10;
+      cursor: grab;
+      touch-action: none;
+    }
+    .piece:active { cursor: grabbing; }
+    .piece.mine { background: var(--mine); }
+    .piece.enemy { background: var(--enemy); }
+    .piece.support {
+      background: var(--support);
+      width: clamp(22px, 3.0vw, 34px);
+      height: clamp(22px, 3.0vw, 34px);
+      font-size: clamp(8px, .95vw, 10px);
+    }
+    .piece.captain { border: 3px solid #FFD54F; }
+    .piece.selected { outline: 4px solid rgba(16, 132, 255, .25); outline-offset: 3px; }
+    .piece.out { background: #7c858d; }
+    .piece.named {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      padding: 3px;
+    }
+
+    .piece .piece-label {
+      line-height: 1;
+      white-space: nowrap;
+      writing-mode: horizontal-tb;
+      text-orientation: mixed;
+    }
+
+    .piece.named .piece-label {
+      width: 100%;
+      text-align: center;
+      font-size: clamp(12px, 1.55vw, 17px);
+      line-height: 1;
+      letter-spacing: -0.04em;
+      overflow: visible;
+    }
+
+    .piece.named.name-1 .piece-label {
+      font-size: clamp(14px, 1.8vw, 20px);
+      letter-spacing: 0;
+    }
+
+    .piece.named.name-2 .piece-label {
+      font-size: clamp(11px, 1.45vw, 16px);
+      letter-spacing: -0.08em;
+    }
+
+    .piece .piece-role {
+      display: none;
+    }
+
+    .piece.named .piece-role {
+      display: block;
+      font-size: clamp(6px, .66vw, 8px);
+      line-height: 1;
+      font-weight: 800;
+      opacity: .82;
+      white-space: nowrap;
+      margin-top: 1px;
+    }
+
+    /* サポートは駒が小さいので、名前と役割を専用サイズにする */
+    .piece.support.named {
+      gap: 0;
+      padding: 2px;
+    }
+
+    .piece.support.named.name-1 .piece-label {
+      font-size: clamp(10px, 1.15vw, 13px);
+      letter-spacing: 0;
+    }
+
+    .piece.support.named.name-2 .piece-label {
+      font-size: clamp(8px, .95vw, 11px);
+      letter-spacing: -0.08em;
+    }
+
+    .piece.support.named .piece-role {
+      font-size: clamp(5px, .52vw, 7px);
+      margin-top: 1px;
+      opacity: .88;
+    }
+
+    /* リベロが通常モードでリベロエリアに入った時の「布団を広げた」表示 */
+    .piece.libero-guard {
+      width: clamp(58px, 8.2vw, 88px);
+      height: clamp(28px, 3.6vw, 38px);
+      border-radius: 10px;
+      background:
+        linear-gradient(
+          to bottom,
+          rgba(255,255,255,.20),
+          rgba(255,255,255,.04)
+        ),
+        var(--mine);
+      border: 2px solid rgba(255,255,255,.95);
+      box-shadow:
+        0 3px 9px rgba(0,0,0,.18),
+        inset 0 0 0 2px rgba(255,255,255,.12);
+      z-index: 11;
+    }
+
+    .piece.libero-guard.enemy {
+      background:
+        linear-gradient(
+          to bottom,
+          rgba(255,255,255,.20),
+          rgba(255,255,255,.04)
+        ),
+        var(--enemy);
+    }
+
+    .piece.libero-guard .piece-label {
+      font-size: clamp(11px, 1.2vw, 14px);
+    }
+
+    .piece.libero-guard.named.name-1 .piece-label {
+      font-size: clamp(12px, 1.4vw, 16px);
+    }
+
+    .piece.libero-guard.named.name-2 .piece-label {
+      font-size: clamp(10px, 1.15vw, 13px);
+      letter-spacing: -0.04em;
+    }
+
+    .piece.libero-guard.named .piece-role {
+      font-size: clamp(5px, .58vw, 7px);
+    }
+
+    .piece.pillow {
+      width: clamp(14px, 1.8vw, 20px);
+      height: clamp(26px, 3.3vw, 38px);
+      border-radius: 999px;
+      background: linear-gradient(to right, #5b9bf3 0%, var(--pillow) 58%, #216fce 100%);
+      border: 1.5px solid rgba(255,255,255,.9);
+      box-shadow: 0 2px 6px rgba(0,0,0,.18);
+      color: transparent;
+    }
+
+    .bottom {
+      min-height: 42px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .name-editor {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .name-editor[hidden] { display: none; }
+    .name-editor label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .name-editor input {
+      width: 58px;
+      height: 34px;
+      border: 1px solid #cfd5da;
+      border-radius: 9px;
+      background: #fff;
+      color: var(--text);
+      text-align: center;
+      font-size: 16px;
+      font-weight: 800;
+      outline: none;
+    }
+    .name-editor input:focus {
+      border-color: var(--mine);
+      box-shadow: 0 0 0 3px rgba(36,120,255,.16);
+    }
+    .name-editor button {
+      border: 1px solid #cfd5da;
+      background: #fff;
+      color: var(--text);
+      border-radius: 9px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .action-button {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 13px;
+      font-weight: 800;
+      font-size: 12px;
+      background: #e8ebee;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .action-button.hit {
+      background: #feeceb;
+      color: var(--danger);
+    }
+    .action-button.restore {
+      background: #e9f6ed;
+      color: #23783c;
+    }
+    .action-button[hidden] { display: none; }
+
+    .hint {
+      display: none;
+      position: absolute;
+      left: 50%;
+      bottom: 1.8%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: var(--muted);
+      background: rgba(255,255,255,.82);
+      padding: 4px 7px;
+      border-radius: 7px;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .toolbar-button.active-toggle {
+      background: #e8f1ff;
+      border-color: #aac8ef;
+      color: #1f64bd;
+    }
+
+
+    .draw-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 7;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .stage.drawing-mode .draw-layer {
+      pointer-events: auto;
+      cursor: crosshair;
+    }
+
+    .stage.drawing-mode .piece {
+      pointer-events: none;
+    }
+
+    .draw-path {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .draw-path.move {
+      stroke: #59656f;
+      stroke-width: 4;
+    }
+
+    .draw-path.throw {
+      stroke: #2F80ED;
+      stroke-width: 4;
+    }
+
+    .draw-path.erase-target {
+      pointer-events: stroke;
+      cursor: pointer;
+    }
+
+    .draw-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .draw-toolbar.compact .draw-optional {
+      display: none;
+    }
+
+    .member-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .member-input-row {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 7px;
+      align-items: center;
+    }
+
+    .member-input-row span {
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .member-input-row input,
+    .assignment-row select {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid #cfd6dd;
+      border-radius: 9px;
+      padding: 8px 9px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    .member-input-row input:focus,
+    .assignment-row select:focus {
+      border-color: #7da9df;
+      box-shadow: 0 0 0 3px rgba(47,128,237,.12);
+    }
+
+    .member-section-title {
+      font-size: 12px;
+      font-weight: 900;
+      margin: 4px 0 8px;
+    }
+
+    .assignment-grid {
+      display: grid;
+      gap: 7px;
+    }
+
+    .assignment-row {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .assignment-row label {
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .member-note {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.45;
+      margin-top: 8px;
+    }
+
+    .lineup-grid {
+      display: grid;
+      gap: 7px;
+    }
+
+    .lineup-divider {
+      margin-top: 5px;
+      padding-top: 9px;
+      border-top: 1px solid #e1e5e9;
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--muted);
+    }
+
+    .lineup-slot {
+      min-height: 48px;
+      display: grid;
+      grid-template-columns: 34px 52px minmax(0, 1fr) 64px;
+      gap: 7px;
+      align-items: center;
+      padding: 6px 8px;
+      border: 1px solid #dde2e7;
+      border-radius: 11px;
+      background: #fbfcfd;
+      transition: .12s ease;
+    }
+
+    .lineup-slot.drag-over {
+      border-color: #74a7e2;
+      background: #f1f7fd;
+      box-shadow: 0 0 0 3px rgba(47,128,237,.12);
+    }
+
+    .lineup-grip {
+      height: 34px;
+      border: 0;
+      border-radius: 8px;
+      background: #edf0f3;
+      color: #737e88;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .lineup-grip:active {
+      cursor: grabbing;
+      background: #dfe5ea;
+    }
+
+    .lineup-role {
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .lineup-input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid #cfd6dd;
+      border-radius: 9px;
+      padding: 8px 9px;
+      background: #fff;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 900;
+      text-align: center;
+      outline: none;
+    }
+
+    .lineup-input:focus {
+      border-color: #7da9df;
+      box-shadow: 0 0 0 3px rgba(47,128,237,.12);
+    }
+
+    .member-set-tools {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto auto auto;
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+
+    .member-set-tools select,
+    .member-set-tools input,
+    .hand-select {
+      min-width: 0;
+      border: 1px solid #cfd6dd;
+      border-radius: 9px;
+      padding: 8px 7px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .enemy-roster-grid { display: grid; gap: 7px; }
+    .enemy-roster-row {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr) 64px;
+      gap: 7px;
+      align-items: center;
+    }
+    .enemy-roster-row label { font-size: 12px; font-weight: 900; }
+
+    .hand-badge {
+      position: absolute;
+      right: -5px;
+      top: -5px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 3px;
+      display: grid;
+      place-items: center;
+      border: 2px solid #fff;
+      border-radius: 9px;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+    .hand-badge.right { background:#69737d; }
+    .hand-badge.left { background:#2F80ED; }
+    .hand-badge.both { background:#8b5fbf; }
+
+    .lineup-dragging {
+      opacity: .35;
+    }
+
+    .lineup-ghost {
+      position: fixed;
+      z-index: 2500;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      min-width: 82px;
+      padding: 9px 13px;
+      border-radius: 10px;
+      background: #fff;
+      border: 1px solid #aeb7c0;
+      box-shadow: 0 8px 24px rgba(0,0,0,.20);
+      font-weight: 900;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .member-dnd-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+      gap: 12px;
+      align-items: start;
+      margin-top: 6px;
+    }
+
+    .member-pool,
+    .position-board {
+      display: grid;
+      gap: 8px;
+    }
+
+    .member-pool {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .member-card {
+      position: relative;
+      min-height: 42px;
+      border: 1px solid #cfd6dd;
+      border-radius: 10px;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      padding: 6px 8px;
+      font-weight: 900;
+      font-size: 13px;
+      touch-action: none;
+      user-select: none;
+      cursor: grab;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+
+    .member-card:active { cursor: grabbing; }
+
+    .member-card .member-no {
+      position: absolute;
+      left: 5px;
+      top: 4px;
+      font-size: 8px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .member-card.empty {
+      color: #a0a8b0;
+      background: #f7f8f9;
+      border-style: dashed;
+    }
+
+    .member-card.dragging {
+      opacity: .35;
+    }
+
+    .position-slot {
+      min-height: 46px;
+      display: grid;
+      grid-template-columns: 58px 1fr;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 8px;
+      border-radius: 11px;
+      border: 1px solid #dce1e6;
+      background: #fbfcfd;
+      transition: .12s ease;
+    }
+
+    .position-slot.drag-over,
+    .bench-drop.drag-over {
+      border-color: #6da4e5;
+      box-shadow: 0 0 0 3px rgba(47,128,237,.12);
+      background: #f2f7fd;
+    }
+
+    .position-slot .position-label {
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .slot-member {
+      min-height: 32px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      padding: 5px 7px;
+      background: #eef1f4;
+      color: var(--text);
+      font-weight: 900;
+      font-size: 13px;
+      touch-action: none;
+      user-select: none;
+      cursor: grab;
+    }
+
+    .slot-member.empty {
+      color: #9aa3ab;
+      font-weight: 700;
+      border: 1px dashed #c8ced5;
+      background: transparent;
+      cursor: default;
+    }
+
+    .bench-drop {
+      grid-column: 1 / -1;
+      min-height: 52px;
+      border: 1px dashed #c8ced5;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      background: #fafbfc;
+      transition: .12s ease;
+    }
+
+    .drag-ghost {
+      position: fixed;
+      z-index: 2000;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      min-width: 70px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: #fff;
+      border: 1px solid #aeb7c0;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18);
+      font-weight: 900;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 560px) {
+      .member-dnd-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .draw-tool {
+      border: 1px solid #d9dde2;
+      background: #fff;
+      color: var(--text);
+      padding: 7px 9px;
+      border-radius: 9px;
+      font-weight: 800;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .draw-tool.active {
+      background: #e8f1ff;
+      border-color: #9dbde7;
+      color: #1f64bd;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 28, 36, .28);
+      display: grid;
+      place-items: center;
+      z-index: 1000;
+      padding: 18px;
+    }
+
+    .modal-backdrop[hidden] { display: none; }
+
+    .modal-card {
+      width: min(92vw, 430px);
+      max-height: min(78vh, 620px);
+      overflow: auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.22);
+      padding: 16px;
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+
+    .save-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .save-row input {
+      min-width: 0;
+      border: 1px solid #cfd6dd;
+      border-radius: 10px;
+      padding: 10px 11px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .save-row input:focus {
+      border-color: #7da9df;
+      box-shadow: 0 0 0 3px rgba(47,128,237,.12);
+    }
+
+    .tactic-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .tactic-empty {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 14px 4px;
+      text-align: center;
+    }
+
+    .tactic-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 7px;
+      align-items: center;
+      border: 1px solid #e0e4e8;
+      border-radius: 11px;
+      padding: 9px 10px;
+      background: #fbfcfd;
+    }
+
+    .tactic-name {
+      font-weight: 800;
+      font-size: 14px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tactic-meta {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    .danger-mini {
+      border: 0;
+      background: #feeceb;
+      color: #b42318;
+      border-radius: 8px;
+      padding: 7px 9px;
+      font-weight: 800;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(22px, env(safe-area-inset-bottom));
+      transform: translate(-50%, 20px);
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(22,32,42,.92);
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s ease;
+      z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (orientation: portrait) {
+      .app { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+      .topbar { grid-template-columns: 1fr; }
+      .toolbar { justify-content: space-between; }
+      .stage {
+        width: min(100%, calc((100dvh - 132px) * .82));
+        aspect-ratio: .82 / 1;
+      }
+      .hint { display: none; }
+      .subtitle { display: none; }
+      .bottom {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+      .name-editor { justify-content: center; }
+      .actions { justify-content: center; }
+    }
+  
+    .cloud-status-box { display:grid; gap:8px; padding:12px; border:1px solid #dde2e7; border-radius:12px; background:#fbfcfd; margin-bottom:12px; }
+    .cloud-status-line { display:flex; gap:8px; align-items:center; justify-content:space-between; font-size:12px; }
+    .cloud-status-main { font-weight:900; }
+    .cloud-subtle { color:var(--muted); font-size:10px; line-height:1.5; overflow-wrap:anywhere; }
+    .cloud-badge { display:inline-flex; align-items:center; min-height:22px; padding:3px 8px; border-radius:999px; border:1px solid #d7dde3; background:#fff; font-size:10px; font-weight:900; white-space:nowrap; }
+    .cloud-badge.ok { border-color:#a7d8b1; background:#f0f9f2; }
+    .cloud-badge.warn { border-color:#ead59b; background:#fff9e9; }
+    .cloud-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .cloud-uid { user-select:text; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:10px; overflow-wrap:anywhere; }
+
+  
+    .current-tactic-strip {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 5px 8px;
+      align-items: center;
+      padding: 5px 9px;
+      margin: 0 8px 2px;
+      border: 1px solid #dfe4e8;
+      border-radius: 12px;
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 2px 8px rgba(42,52,60,.05);
+    }
+
+    .current-tactic-info {
+      min-width: 0;
+    }
+
+    .current-tactic-name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .current-tactic-name-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .current-tactic-dirty {
+      flex: 0 0 auto;
+      font-size: 10px;
+      font-weight: 900;
+      color: #9a6b13;
+      background: #fff7df;
+      border: 1px solid #ead59b;
+      border-radius: 999px;
+      padding: 2px 6px;
+    }
+
+    .current-tactic-memo {
+      margin-top: 1px;
+      font-size: 9px;
+      line-height: 1.25;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .current-tactic-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .quick-save-button {
+      min-width: 62px;
+    }
+
+    .camera-button {
+      width: 36px;
+      min-width: 36px;
+      padding-left: 0;
+      padding-right: 0;
+      font-size: 16px;
+    }
+
+    .tactic-memo-input {
+      width: 100%;
+      min-height: 52px;
+      height: 52px;
+      resize: none;
+      border: 1px solid #cfd6dd;
+      border-radius: 10px;
+      padding: 9px 10px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+      line-height: 1.5;
+      outline: none;
+      box-sizing: border-box;
+      margin: 8px 0 10px;
+    }
+
+    .tactic-memo-input:focus {
+      border-color: #7da9df;
+      box-shadow: 0 0 0 3px rgba(47,128,237,.12);
+    }
+
+    .tactic-memo-preview {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    @media (max-width: 520px) {
+      .current-tactic-strip {
+        margin-left: 4px;
+        margin-right: 4px;
+        padding: 4px 7px;
+      }
+
+      .current-tactic-memo {
+        max-width: 62vw;
+      }
+
+      .quick-save-button {
+        min-width: 56px;
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+    }
+
+  
+    /* iPad / タブレットでは盤面に対して駒が小さく見えるため拡大 */
+    .ipad-like .piece {
+      width: clamp(52px, 5.7vw, 66px);
+      height: clamp(52px, 5.7vw, 66px);
+      font-size: clamp(13px, 1.65vw, 18px);
+      border-width: 3px;
+    }
+
+    .ipad-like .piece.captain {
+      border-width: 4px;
+    }
+
+    .ipad-like .piece.named .piece-label {
+      font-size: clamp(14px, 1.8vw, 20px);
+    }
+
+    .ipad-like .piece.named.name-1 .piece-label {
+      font-size: clamp(17px, 2.1vw, 23px);
+    }
+
+    .ipad-like .piece.named.name-2 .piece-label {
+      font-size: clamp(14px, 1.7vw, 19px);
+    }
+
+    .ipad-like .piece.named .piece-role {
+      font-size: clamp(7px, .8vw, 9px);
+    }
+
+
+    /* 枕はiPadでも大きくしすぎず、縦長形状を維持 */
+    .ipad-like .piece.pillow {
+      width: clamp(16px, 1.95vw, 22px);
+      height: clamp(30px, 3.75vw, 42px);
+      border-radius: 999px;
+      font-size: 0;
+      border-width: 1.5px;
+    }
+
+    .ipad-like .piece.out.pillow {
+      width: clamp(16px, 1.95vw, 22px);
+      height: clamp(30px, 3.75vw, 42px);
+      border-radius: 999px;
+    }
+
+    .ipad-like .piece.support {
+      width: clamp(32px, 3.8vw, 44px);
+      height: clamp(32px, 3.8vw, 44px);
+      font-size: clamp(9px, 1.15vw, 12px);
+    }
+
+    .ipad-like .piece.support.named.name-1 .piece-label {
+      font-size: clamp(12px, 1.4vw, 15px);
+    }
+
+    .ipad-like .piece.support.named.name-2 .piece-label {
+      font-size: clamp(10px, 1.2vw, 13px);
+    }
+
+    .ipad-like .piece.support.named .piece-role {
+      font-size: clamp(6px, .7vw, 8px);
+    }
+
+    .ipad-like .piece.libero-guard {
+      width: clamp(96px, 11.8vw, 132px);
+      height: clamp(44px, 5.2vw, 58px);
+      border-radius: 13px;
+      border-width: 3px;
+    }
+
+    .ipad-like .piece.libero-guard .piece-label {
+      font-size: clamp(15px, 1.75vw, 19px);
+    }
+
+    .ipad-like .piece.libero-guard.named.name-1 .piece-label {
+      font-size: clamp(17px, 1.95vw, 21px);
+    }
+
+    .ipad-like .piece.libero-guard.named.name-2 .piece-label {
+      font-size: clamp(14px, 1.65vw, 17px);
+    }
+
+    .ipad-like .piece.libero-guard.named .piece-role {
+      font-size: clamp(6px, .72vw, 8px);
+    }
+
+    /* iPadでは選択枠も駒に合わせて少し見やすく */
+    .ipad-like .piece.selected {
+      outline-width: 5px;
+      outline-offset: 4px;
+    }
+
+  </style>
+
+<script>
+  (() => {
+    const isIPadLike =
+      /iPad/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+      (Math.min(screen.width, screen.height) >= 650 && navigator.maxTouchPoints > 1);
+
+    if (isIPadLike) {
+      document.documentElement.classList.add('ipad-like');
+    }
+  })();
+</script>
+
+</head>
+
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="title-wrap">
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.56</span></div>
+      <div class="subtitle">駒をドラッグ。アタッカー・リベロをタップして状態を変更できます。戦術は端末内保存に加え、Googleログイン時はFirebaseで端末間同期できます。</div>
+    </div>
+
+    <div class="toolbar">
+      <div class="segmented" aria-label="モード切替">
+        <button id="modeNormal" class="active">通常</button>
+        <button id="modeFinal">残り30秒</button>
+      </div>
+      <button class="toolbar-button" id="pillowToggleBtn">枕なし</button>
+      <button class="toolbar-button" id="tacticsBtn">戦術</button>
+      <button class="toolbar-button" id="cloudBtn" type="button">☁ 未接続</button>
+      <button class="toolbar-button" id="resetBtn">リセット</button>
+    </div>
+  </header>
+
+
+  <div class="current-tactic-strip" id="currentTacticStrip">
+    <div class="current-tactic-info">
+      <div class="current-tactic-name">
+        <span class="current-tactic-name-text" id="boardTacticName">未保存の配置</span>
+        <span class="current-tactic-dirty" id="boardTacticDirty" hidden>編集中</span>
+      </div>
+      <div class="current-tactic-memo" id="boardTacticMemo">戦術を保存すると名前とメモがここに表示されます。</div>
+    </div>
+    <div class="current-tactic-actions">
+      <button class="toolbar-button quick-save-button" id="quickSaveBtn" type="button">新規保存</button>
+      <button class="toolbar-button camera-button" id="screenshotBtn" type="button" aria-label="戦術画像を作成" title="戦術画像を作成">📷</button>
+    </div>
+  </div>
+
+  <main class="stage-wrap">
+    <div class="stage" id="stage">
+      <div class="court-wrap">
+        <div class="team-court mine"></div>
+        <div class="center-gap"></div>
+        <div class="team-court enemy"></div>
+        <div class="center-line"></div>
+
+        <div id="mineCaptainZone" class="zone mine-captain"></div>
+        <div id="mineLiberoZone" class="zone mine-libero"></div>
+        <div id="enemyLiberoZone" class="zone enemy-libero"></div>
+        <div id="enemyCaptainZone" class="zone enemy-captain"></div>
+
+        <div class="pillow-start mine"></div>
+        <div class="pillow-start enemy"></div>
+
+      </div>
+
+      <div class="futon external enemy f1"></div>
+      <div class="futon external enemy f2"></div>
+      <div class="futon external enemy f3"></div>
+      <div class="futon external enemy f4"></div>
+
+      <div class="futon external mine f1"></div>
+      <div class="futon external mine f2"></div>
+      <div class="futon external mine f3"></div>
+      <div class="futon external mine f4"></div>
+
+      <svg class="draw-layer" id="drawLayer" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-label="戦術描画レイヤー">
+        <defs>
+          <marker id="arrowMove" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L8,4 L0,8 z" fill="#59656f"></path>
+          </marker>
+          <marker id="arrowThrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L8,4 L0,8 z" fill="#2F80ED"></path>
+          </marker>
+        </defs>
+        <g id="savedDrawings"></g>
+        <g id="previewDrawing"></g>
+      </svg>
+
+      <div class="hint">縦向きでの使用を想定しています</div>
+    </div>
+  </main>
+
+  <footer class="bottom">
+    <div class="draw-toolbar compact" id="drawToolbar" aria-label="操作ツール">
+      <button class="draw-tool active" id="toolMove" type="button">駒移動</button>
+      <button class="draw-tool" id="membersBtn" type="button">メンバー</button>
+      <button class="draw-tool" id="toggleDrawToolsBtn" type="button">描画</button>
+      <button class="draw-tool draw-optional" id="toolArrowMove" type="button">→ 移動</button>
+      <button class="draw-tool draw-optional" id="toolArrowThrow" type="button">→ 投球</button>
+      <button class="draw-tool draw-optional" id="toolLine" type="button">／ 線</button>
+      <button class="draw-tool draw-optional" id="toolErase" type="button">消す</button>
+      <button class="draw-tool draw-optional" id="clearDrawingsBtn" type="button">描画全消し</button>
+    </div>
+    <div class="status" id="status">駒をドラッグして配置してください。</div>
+    <div class="actions">
+      <button id="hitBtn" class="action-button hit" hidden>💥 ヒット</button>
+      <button id="restoreBtn" class="action-button restore" hidden>↩︎ 復帰</button>
+    </div>
+  </footer>
+</div>
+
+
+<div class="modal-backdrop" id="membersModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="membersModalTitle">
+    <div class="modal-title" id="membersModalTitle">セット編成</div>
+
+    <div class="member-set-tools">
+      <select id="memberSetSelect" aria-label="大会メンバーセット"></select>
+      <input id="memberSetNameInput" type="text" maxlength="30" placeholder="大会名" aria-label="大会名" />
+      <button class="mini-button" id="newMemberSetBtn" type="button">新規</button>
+      <button class="mini-button" id="duplicateMemberSetBtn" type="button">複製</button>
+      <button class="mini-button" id="renameMemberSetBtn" type="button">名称</button>
+      <button class="danger-mini" id="deleteMemberSetBtn" type="button">削除</button>
+    </div>
+
+    <div class="member-note" style="margin:0 0 12px;">
+      大会ごとのメンバーセットです。同じセットを使う戦術には名前・番号・利き腕の変更が共通反映されます。表示は2文字までです。
+    </div>
+
+    <div class="lineup-grid" id="lineupGrid"></div>
+
+    <div class="lineup-divider">相手チーム</div>
+    <div class="enemy-roster-grid" id="enemyRosterGrid"></div>
+
+    <div class="modal-actions" style="gap:8px;">
+      <button class="toolbar-button" id="saveMembersBtn" type="button">反映</button>
+      <button class="toolbar-button" id="closeMembersBtn" type="button">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="tacticsModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="tacticsModalTitle">
+    <div class="modal-title" id="tacticsModalTitle">戦術ライブラリ</div>
+
+    <div class="save-row">
+      <input id="tacticNameInput" type="text" maxlength="30" placeholder="例：右寄せ・残り30秒" />
+      <button class="toolbar-button" id="saveTacticBtn" type="button">新規保存</button>
+    </div>
+
+    <textarea id="tacticMemoInput" class="tactic-memo-input" maxlength="300" placeholder="メモ（任意）&#10;例：初手A1は右寄り。残り30秒で大将を前へ。"></textarea>
+
+    <div style="display:flex; gap:8px; margin-bottom:14px;">
+      <button class="toolbar-button" id="overwriteTacticBtn" type="button" disabled>現在の戦術に上書き</button>
+      <div id="currentTacticLabel" style="align-self:center; font-size:11px; color:var(--muted);"></div>
+    </div>
+
+    <div class="tactic-list" id="tacticList"></div>
+
+    <div class="modal-actions">
+      <button class="toolbar-button" id="closeTacticsBtn" type="button">閉じる</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-backdrop" id="cloudModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="cloudModalTitle">
+    <div class="modal-title" id="cloudModalTitle">クラウド同期</div>
+    <div class="cloud-status-box">
+      <div class="cloud-status-line">
+        <div class="cloud-status-main" id="cloudStatusMain">未接続</div>
+        <div class="cloud-badge warn" id="cloudStatusBadge">LOCAL</div>
+      </div>
+      <div class="cloud-subtle" id="cloudStatusDetail">Googleログインすると、この端末の戦術とメンバーをFirebaseで同期できます。</div>
+      <div class="cloud-subtle" id="cloudUserEmail"></div>
+      <div class="cloud-subtle" id="cloudLastSync">最終同期：未同期</div>
+      <div class="cloud-subtle cloud-uid" id="cloudUid"></div>
+    </div>
+    <div class="cloud-actions">
+      <button class="toolbar-button" id="cloudLoginBtn" type="button">Googleでログイン</button>
+      <button class="toolbar-button" id="cloudSyncNowBtn" type="button" hidden>今すぐ同期</button>
+      <button class="toolbar-button" id="cloudLogoutBtn" type="button" hidden>ログアウト</button>
+      <button class="toolbar-button" id="cloudCloseBtn" type="button">閉じる</button>
+    </div>
+    <div class="member-note" style="margin-top:12px;">
+      初回ログイン時、クラウドにデータがなければこの端末のデータをアップロードします。
+      すでにクラウドデータがある場合はクラウド側を読み込みます。
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const stage = document.getElementById('stage');
+  const statusEl = document.getElementById('status');
+  const hitBtn = document.getElementById('hitBtn');
+  const restoreBtn = document.getElementById('restoreBtn');
+  const normalBtn = document.getElementById('modeNormal');
+  const finalBtn = document.getElementById('modeFinal');
+  const pillowToggleBtn = document.getElementById('pillowToggleBtn');
+  const tacticsBtn = document.getElementById('tacticsBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const cloudBtn = document.getElementById('cloudBtn');
+
+  const drawLayer = document.getElementById('drawLayer');
+  const savedDrawingsEl = document.getElementById('savedDrawings');
+  const previewDrawingEl = document.getElementById('previewDrawing');
+  const drawToolbar = document.getElementById('drawToolbar');
+  const membersBtn = document.getElementById('membersBtn');
+  const toggleDrawToolsBtn = document.getElementById('toggleDrawToolsBtn');
+  const toolMove = document.getElementById('toolMove');
+  const toolArrowMove = document.getElementById('toolArrowMove');
+  const toolArrowThrow = document.getElementById('toolArrowThrow');
+  const toolLine = document.getElementById('toolLine');
+  const toolErase = document.getElementById('toolErase');
+  const clearDrawingsBtn = document.getElementById('clearDrawingsBtn');
+
+  const tacticsModal = document.getElementById('tacticsModal');
+  const tacticNameInput = document.getElementById('tacticNameInput');
+  const tacticMemoInput = document.getElementById('tacticMemoInput');
+  const saveTacticBtn = document.getElementById('saveTacticBtn');
+  const overwriteTacticBtn = document.getElementById('overwriteTacticBtn');
+  const currentTacticLabel = document.getElementById('currentTacticLabel');
+  const tacticList = document.getElementById('tacticList');
+  const closeTacticsBtn = document.getElementById('closeTacticsBtn');
+
+  const boardTacticName = document.getElementById('boardTacticName');
+  const boardTacticDirty = document.getElementById('boardTacticDirty');
+  const boardTacticMemo = document.getElementById('boardTacticMemo');
+  const quickSaveBtn = document.getElementById('quickSaveBtn');
+  const screenshotBtn = document.getElementById('screenshotBtn');
+
+  const membersModal = document.getElementById('membersModal');
+  const lineupGrid = document.getElementById('lineupGrid');
+  const enemyRosterGrid = document.getElementById('enemyRosterGrid');
+  const memberSetSelect = document.getElementById('memberSetSelect');
+  const memberSetNameInput = document.getElementById('memberSetNameInput');
+  const newMemberSetBtn = document.getElementById('newMemberSetBtn');
+  const duplicateMemberSetBtn = document.getElementById('duplicateMemberSetBtn');
+  const renameMemberSetBtn = document.getElementById('renameMemberSetBtn');
+  const deleteMemberSetBtn = document.getElementById('deleteMemberSetBtn');
+  const saveMembersBtn = document.getElementById('saveMembersBtn');
+  const closeMembersBtn = document.getElementById('closeMembersBtn');
+
+  const toast = document.getElementById('toast');
+
+  const zoneIds = [
+    'mineCaptainZone', 'mineLiberoZone', 'enemyLiberoZone', 'enemyCaptainZone'
+  ];
+
+  let selectedId = null;
+  let mode = 'normal';
+  let showPillows = false;
+  let drawTool = 'move';
+  let drawings = [];
+  let drawingStart = null;
+  let currentTacticId = null;
+
+  const MEMBERS_KEY = 'makura-members-v1';
+  const MEMBER_SETS_KEY = 'makura-member-sets-v2';
+  const ACTIVE_MEMBER_SET_KEY = 'makura-active-member-set-v2';
+  const enemyPlayerIds = ['enemy-cap','enemy-lib','enemy-a1','enemy-a2','enemy-a3'];
+  let memberSets = loadMemberSets();
+  let activeMemberSetId = localStorage.getItem(ACTIVE_MEMBER_SET_KEY) || memberSets[0].id;
+  if (!memberSets.some(set => set.id === activeMemberSetId)) activeMemberSetId = memberSets[0].id;
+  let members = activeMemberSet().members;
+
+  const defaults = [
+    // 自チーム
+    // 試合開始時：自チームは下側。L→A1→A2→A3の待機布団はコート下に横一列。
+    { id:'mine-cap', kind:'player', team:'mine', role:'captain', label:'大', x:.740, y:.787, out:false },
+    { id:'mine-lib', kind:'player', team:'mine', role:'libero', label:'L', x:.266, y:.932, out:false },
+    { id:'mine-a1', kind:'player', team:'mine', role:'attacker', number:1, label:'A1', x:.416, y:.932, out:false },
+    { id:'mine-a2', kind:'player', team:'mine', role:'attacker', number:2, label:'A2', x:.566, y:.932, out:false },
+    { id:'mine-a3', kind:'player', team:'mine', role:'attacker', number:3, label:'A3', x:.716, y:.932, out:false },
+
+    // 自チームサポート：下側左端、リベロ布団の左に3人
+    { id:'mine-s1', kind:'player', team:'mine', role:'support', number:1, label:'S1', x:.060, y:.932, out:false },
+    { id:'mine-s2', kind:'player', team:'mine', role:'support', number:2, label:'S2', x:.110, y:.932, out:false },
+    { id:'mine-s3', kind:'player', team:'mine', role:'support', number:3, label:'S3', x:.160, y:.932, out:false },
+
+    // 相手：A1→A2→A3→Lの待機布団はコート上に横一列
+    { id:'enemy-cap', kind:'player', team:'enemy', role:'captain', label:'大', x:.260, y:.213, out:false },
+    { id:'enemy-a1', kind:'player', team:'enemy', role:'attacker', number:1, label:'A1', x:.266, y:.068, out:false },
+    { id:'enemy-a2', kind:'player', team:'enemy', role:'attacker', number:2, label:'A2', x:.416, y:.068, out:false },
+    { id:'enemy-a3', kind:'player', team:'enemy', role:'attacker', number:3, label:'A3', x:.566, y:.068, out:false },
+    { id:'enemy-lib', kind:'player', team:'enemy', role:'libero', label:'L', x:.716, y:.068, out:false },
+
+    // 枕：各コートの前端から1.8mラインに5個横並び
+    { id:'mp1', kind:'pillow', team:'mine', x:.32, y:.694 },
+    { id:'mp2', kind:'pillow', team:'mine', x:.41, y:.694 },
+    { id:'mp3', kind:'pillow', team:'mine', x:.50, y:.694 },
+    { id:'mp4', kind:'pillow', team:'mine', x:.59, y:.694 },
+    { id:'mp5', kind:'pillow', team:'mine', x:.68, y:.694 },
+
+    { id:'ep1', kind:'pillow', team:'enemy', x:.32, y:.306 },
+    { id:'ep2', kind:'pillow', team:'enemy', x:.41, y:.306 },
+    { id:'ep3', kind:'pillow', team:'enemy', x:.50, y:.306 },
+    { id:'ep4', kind:'pillow', team:'enemy', x:.59, y:.306 },
+    { id:'ep5', kind:'pillow', team:'enemy', x:.68, y:.306 },
+  ];
+
+  let pieces = clone(defaults);
+
+  function clone(v) {
+    return JSON.parse(JSON.stringify(v));
+  }
+
+  function blankMembers() {
+    return Array.from({length: 10}, (_, i) => ({
+      id: `m${i + 1}`,
+      name: '',
+      hand: ''
+    }));
+  }
+
+  function blankEnemies() {
+    return enemyPlayerIds.map(id => ({ id, name:'', hand:'' }));
+  }
+
+  function normalizeHand(value) {
+    return ['right','left','both'].includes(value) ? value : '';
+  }
+
+  function normalizeMembers(list) {
+    const byId = new Map((Array.isArray(list) ? list : []).map(m => [m.id, m]));
+    return blankMembers().map(base => {
+      const saved = byId.get(base.id) || {};
+      return {
+        id: base.id,
+        name: typeof saved.name === 'string' ? Array.from(saved.name.trim()).slice(0, 2).join('') : '',
+        hand: normalizeHand(saved.hand)
+      };
+    });
+  }
+
+  function normalizeEnemies(list) {
+    const byId = new Map((Array.isArray(list) ? list : []).map(m => [m.id, m]));
+    return blankEnemies().map(base => {
+      const saved = byId.get(base.id) || {};
+      return {
+        id: base.id,
+        name: typeof saved.name === 'string' ? Array.from(saved.name.trim()).slice(0, 2).join('') : '',
+        hand: normalizeHand(saved.hand)
+      };
+    });
+  }
+
+  function makeMemberSet(name, source = null) {
+    return {
+      id: `set-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+      name: String(name || '大会メンバー').trim().slice(0, 30) || '大会メンバー',
+      members: normalizeMembers(source?.members),
+      enemies: normalizeEnemies(source?.enemies)
+    };
+  }
+
+  function loadMemberSets() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(MEMBER_SETS_KEY) || 'null');
+      if (Array.isArray(stored) && stored.length) {
+        return stored.map(set => ({
+          id: String(set.id || `set-${Date.now()}`),
+          name: String(set.name || '大会メンバー').slice(0, 30),
+          members: normalizeMembers(set.members),
+          enemies: normalizeEnemies(set.enemies)
+        }));
+      }
+    } catch {}
+
+    const legacy = loadMembers();
+    return [{ id:'set-default', name:'現在のメンバー', members:legacy, enemies:blankEnemies() }];
+  }
+
+  function activeMemberSet() {
+    return memberSets.find(set => set.id === activeMemberSetId) || memberSets[0];
+  }
+
+  function selectMemberSet(id) {
+    const next = memberSets.find(set => set.id === id);
+    if (!next) return;
+    activeMemberSetId = next.id;
+    members = next.members;
+    localStorage.setItem(ACTIVE_MEMBER_SET_KEY, activeMemberSetId);
+  }
+
+  function loadMembers() {
+    try {
+      const raw = localStorage.getItem(MEMBERS_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (!Array.isArray(parsed)) return blankMembers();
+
+      const byId = new Map(parsed.map(m => [m.id, m]));
+      return blankMembers().map(base => {
+        const saved = byId.get(base.id);
+        return {
+          id: base.id,
+          name: saved && typeof saved.name === 'string'
+            ? Array.from(saved.name.trim()).slice(0, 2).join('')
+            : '',
+          hand: normalizeHand(saved?.hand)
+        };
+      });
+    } catch {
+      return blankMembers();
+    }
+  }
+
+  function saveMembersToStorage() {
+    const set = activeMemberSet();
+    set.members = normalizeMembers(members);
+    members = set.members;
+    localStorage.setItem(MEMBER_SETS_KEY, JSON.stringify(memberSets));
+    localStorage.setItem(ACTIVE_MEMBER_SET_KEY, activeMemberSetId);
+    localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
+    window.MakuraCloud?.schedulePush?.();
+  }
+
+  function memberName(memberId) {
+    if (!memberId) return '';
+    return members.find(m => m.id === memberId)?.name || '';
+  }
+
+  function playerProfile(p) {
+    if (!p || p.kind !== 'player') return null;
+    if (p.team === 'mine') return members.find(m => m.id === p.memberId) || null;
+    return activeMemberSet().enemies.find(m => m.id === p.id) || null;
+  }
+
+  const ownPositionIds = [
+    'mine-cap', 'mine-lib', 'mine-a1', 'mine-a2',
+    'mine-a3', 'mine-s1', 'mine-s2', 'mine-s3'
+  ];
+
+  const ownPositionLabels = {
+    'mine-cap': '大将',
+    'mine-lib': 'L',
+    'mine-a1': 'A1',
+    'mine-a2': 'A2',
+    'mine-a3': 'A3',
+    'mine-s1': 'S1',
+    'mine-s2': 'S2',
+    'mine-s3': 'S3'
+  };
+
+  const lineupSlotIds = [
+    'mine-cap', 'mine-lib', 'mine-a1', 'mine-a2',
+    'mine-a3', 'mine-s1', 'mine-s2', 'mine-s3',
+    'bench1', 'bench2'
+  ];
+
+  const lineupSlotLabels = {
+    'mine-cap': '大将',
+    'mine-lib': 'L',
+    'mine-a1': 'A1',
+    'mine-a2': 'A2',
+    'mine-a3': 'A3',
+    'mine-s1': 'S1',
+    'mine-s2': 'S2',
+    'mine-s3': 'S3',
+    'bench1': '控え1',
+    'bench2': '控え2'
+  };
+
+  let draftMembers = [];
+  let draftEnemies = [];
+  let draftSlots = {};
+  let lineupDrag = null;
+
+  function buildCurrentLineupSlots() {
+    const result = {};
+    const used = new Set();
+
+    ownPositionIds.forEach(pieceId => {
+      const p = pieces.find(piece => piece.id === pieceId);
+      const memberId = p?.memberId || '';
+
+      if (memberId && members.some(m => m.id === memberId) && !used.has(memberId)) {
+        result[pieceId] = memberId;
+        used.add(memberId);
+      }
+    });
+
+    const remaining = members.map(m => m.id).filter(id => !used.has(id));
+
+    ownPositionIds.forEach(pieceId => {
+      if (!result[pieceId]) result[pieceId] = remaining.shift() || '';
+    });
+
+    result.bench1 = remaining.shift() || '';
+    result.bench2 = remaining.shift() || '';
+
+    return result;
+  }
+
+  function draftMemberBySlot(slotId) {
+    const memberId = draftSlots[slotId];
+    return draftMembers.find(m => m.id === memberId) || null;
+  }
+
+  function renderLineupModal() {
+    memberSetSelect.replaceChildren();
+    memberSets.forEach(set => {
+      const option = document.createElement('option');
+      option.value = set.id;
+      option.textContent = set.name;
+      option.selected = set.id === activeMemberSetId;
+      memberSetSelect.appendChild(option);
+    });
+    deleteMemberSetBtn.disabled = memberSets.length <= 1;
+    memberSetNameInput.value = activeMemberSet().name;
+    lineupGrid.replaceChildren();
+
+    lineupSlotIds.forEach(slotId => {
+      if (slotId === 'bench1') {
+        const divider = document.createElement('div');
+        divider.className = 'lineup-divider';
+        divider.textContent = '控え';
+        lineupGrid.appendChild(divider);
+      }
+
+      const row = document.createElement('div');
+      row.className = 'lineup-slot';
+      row.dataset.slotId = slotId;
+
+      const grip = document.createElement('button');
+      grip.type = 'button';
+      grip.className = 'lineup-grip';
+      grip.textContent = '≡';
+      grip.setAttribute('aria-label', `${lineupSlotLabels[slotId]}をドラッグして入れ替え`);
+
+      const role = document.createElement('div');
+      role.className = 'lineup-role';
+      role.textContent = lineupSlotLabels[slotId];
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'lineup-input';
+      input.placeholder = '名前（2文字まで）';
+
+      const member = draftMemberBySlot(slotId);
+      input.value = member?.name || '';
+
+      let isComposingName = false;
+
+      const commitName = () => {
+        const current = draftMemberBySlot(slotId);
+        if (!current) return;
+
+        const value = Array.from(input.value.trim()).slice(0, 2).join('');
+        current.name = value;
+        if (input.value !== value) input.value = value;
+      };
+
+      input.addEventListener('compositionstart', () => {
+        isComposingName = true;
+      });
+
+      input.addEventListener('compositionend', () => {
+        isComposingName = false;
+        commitName();
+      });
+
+      input.addEventListener('input', () => {
+        if (isComposingName) return;
+        commitName();
+      });
+
+      input.addEventListener('blur', commitName);
+
+      const hand = document.createElement('select');
+      hand.className = 'hand-select';
+      [['','利き腕'],['right','右'],['left','左'],['both','両']].forEach(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        hand.appendChild(option);
+      });
+      hand.value = member?.hand || '';
+      hand.addEventListener('change', () => {
+        const current = draftMemberBySlot(slotId);
+        if (current) current.hand = normalizeHand(hand.value);
+      });
+
+      bindLineupDrag(grip, slotId);
+
+      row.append(grip, role, input, hand);
+      lineupGrid.appendChild(row);
+    });
+
+    renderEnemyRoster();
+  }
+
+  function renderEnemyRoster() {
+    enemyRosterGrid.replaceChildren();
+    const labels = {'enemy-cap':'大将','enemy-lib':'L','enemy-a1':'A1','enemy-a2':'A2','enemy-a3':'A3'};
+    draftEnemies.forEach(enemy => {
+      const row = document.createElement('div');
+      row.className = 'enemy-roster-row';
+      const label = document.createElement('label');
+      label.textContent = labels[enemy.id] || enemy.id;
+      const input = document.createElement('input');
+      input.className = 'lineup-input';
+      input.value = enemy.name || '';
+      input.placeholder = '名前・番号';
+      let composing = false;
+      const commit = () => {
+        if (composing) return;
+        enemy.name = Array.from(input.value.trim()).slice(0,2).join('');
+        input.value = enemy.name;
+      };
+      input.addEventListener('compositionstart', () => { composing = true; });
+      input.addEventListener('compositionend', () => { composing = false; commit(); });
+      input.addEventListener('input', commit);
+      input.addEventListener('blur', commit);
+      const hand = document.createElement('select');
+      hand.className = 'hand-select';
+      [['','利き腕'],['right','右'],['left','左'],['both','両']].forEach(([value, text]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = text;
+        hand.appendChild(option);
+      });
+      hand.value = enemy.hand || '';
+      hand.addEventListener('change', () => { enemy.hand = normalizeHand(hand.value); });
+      row.append(label, input, hand);
+      enemyRosterGrid.appendChild(row);
+    });
+  }
+
+  function openMembersModal() {
+    draftMembers = clone(members);
+    draftEnemies = clone(activeMemberSet().enemies);
+    draftSlots = buildCurrentLineupSlots();
+    renderLineupModal();
+    membersModal.hidden = false;
+  }
+
+  memberSetSelect.addEventListener('change', () => {
+    selectMemberSet(memberSetSelect.value);
+    draftMembers = clone(members);
+    draftEnemies = clone(activeMemberSet().enemies);
+    draftSlots = buildCurrentLineupSlots();
+    renderLineupModal();
+  });
+
+  newMemberSetBtn.addEventListener('click', () => {
+    const name = memberSetNameInput.value.trim();
+    if (!name) {
+      showToast('大会名を入力してください');
+      memberSetNameInput.focus();
+      return;
+    }
+    const set = makeMemberSet(name);
+    memberSets.push(set);
+    selectMemberSet(set.id);
+    saveMembersToStorage();
+    draftMembers = clone(members);
+    draftEnemies = clone(activeMemberSet().enemies);
+    draftSlots = buildCurrentLineupSlots();
+    renderLineupModal();
+  });
+
+  duplicateMemberSetBtn.addEventListener('click', () => {
+    const current = activeMemberSet();
+    const typed = memberSetNameInput.value.trim();
+    const name = typed && typed !== current.name ? typed : `${current.name} コピー`;
+    const set = makeMemberSet(name, current);
+    memberSets.push(set);
+    selectMemberSet(set.id);
+    saveMembersToStorage();
+    draftMembers = clone(members);
+    draftEnemies = clone(activeMemberSet().enemies);
+    draftSlots = buildCurrentLineupSlots();
+    renderLineupModal();
+  });
+
+  renameMemberSetBtn.addEventListener('click', () => {
+    const current = activeMemberSet();
+    const name = memberSetNameInput.value.trim();
+    if (!name) {
+      showToast('大会名を入力してください');
+      memberSetNameInput.focus();
+      return;
+    }
+    current.name = name.trim().slice(0, 30);
+    saveMembersToStorage();
+    renderLineupModal();
+  });
+
+  deleteMemberSetBtn.addEventListener('click', () => {
+    if (memberSets.length <= 1) return;
+    const current = activeMemberSet();
+    if (!confirm(`「${current.name}」を削除しますか？\nこのセットを使う戦術は、残っているメンバーセットへ切り替わります。`)) return;
+    memberSets = memberSets.filter(set => set.id !== current.id);
+    selectMemberSet(memberSets[0].id);
+    const tactics = getTactics().map(t => t.memberSetId === current.id ? {...t, memberSetId:activeMemberSetId} : t);
+    setTactics(tactics);
+    saveMembersToStorage();
+    draftMembers = clone(members);
+    draftEnemies = clone(activeMemberSet().enemies);
+    draftSlots = buildCurrentLineupSlots();
+    renderLineupModal();
+  });
+
+  function bindLineupDrag(handle, sourceSlotId) {
+    handle.addEventListener('pointerdown', e => {
+      if (e.button !== undefined && e.button !== 0) return;
+      e.preventDefault();
+
+      lineupDrag = {
+        pointerId: e.pointerId,
+        sourceSlotId,
+        handle,
+        startX: e.clientX,
+        startY: e.clientY,
+        moved: false,
+        ghost: null
+      };
+
+      try { handle.setPointerCapture(e.pointerId); } catch {}
+    });
+
+    handle.addEventListener('pointermove', e => {
+      if (!lineupDrag || lineupDrag.pointerId !== e.pointerId) return;
+
+      const dist = Math.hypot(e.clientX - lineupDrag.startX, e.clientY - lineupDrag.startY);
+      if (!lineupDrag.moved && dist < 5) return;
+
+      if (!lineupDrag.moved) {
+        lineupDrag.moved = true;
+        handle.classList.add('lineup-dragging');
+
+        const member = draftMemberBySlot(sourceSlotId);
+        const ghost = document.createElement('div');
+        ghost.className = 'lineup-ghost';
+        ghost.textContent = member?.name || lineupSlotLabels[sourceSlotId];
+        document.body.appendChild(ghost);
+        lineupDrag.ghost = ghost;
+      }
+
+      if (lineupDrag.ghost) {
+        lineupDrag.ghost.style.left = `${e.clientX}px`;
+        lineupDrag.ghost.style.top = `${e.clientY}px`;
+      }
+
+      highlightLineupDrop(e.clientX, e.clientY);
+    });
+
+    const finish = e => {
+      if (!lineupDrag || lineupDrag.pointerId !== e.pointerId) return;
+
+      try { handle.releasePointerCapture(e.pointerId); } catch {}
+
+      if (lineupDrag.moved) {
+        const targetSlotId = lineupDropTarget(e.clientX, e.clientY);
+
+        if (targetSlotId && targetSlotId !== sourceSlotId) {
+          const tmp = draftSlots[sourceSlotId];
+          draftSlots[sourceSlotId] = draftSlots[targetSlotId];
+          draftSlots[targetSlotId] = tmp;
+          renderLineupModal();
+        }
+      }
+
+      cleanupLineupDrag();
+    };
+
+    handle.addEventListener('pointerup', finish);
+    handle.addEventListener('pointercancel', cleanupLineupDrag);
+  }
+
+  function lineupDropTarget(x, y) {
+    const el = document.elementFromPoint(x, y);
+    const row = el?.closest('.lineup-slot');
+    return row?.dataset.slotId || null;
+  }
+
+  function highlightLineupDrop(x, y) {
+    document.querySelectorAll('.lineup-slot.drag-over')
+      .forEach(el => el.classList.remove('drag-over'));
+
+    const targetId = lineupDropTarget(x, y);
+    if (!targetId) return;
+
+    const row = lineupGrid.querySelector(`.lineup-slot[data-slot-id="${targetId}"]`);
+    row?.classList.add('drag-over');
+  }
+
+  function cleanupLineupDrag() {
+    document.querySelectorAll('.lineup-slot.drag-over')
+      .forEach(el => el.classList.remove('drag-over'));
+
+    if (lineupDrag?.handle) lineupDrag.handle.classList.remove('lineup-dragging');
+    if (lineupDrag?.ghost) lineupDrag.ghost.remove();
+
+    lineupDrag = null;
+  }
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => toast.classList.remove('show'), 1500);
+  }
+
+  function pieceName(p) {
+    const side = p.team === 'mine' ? '自チーム' : '相手';
+    if (p.kind === 'pillow') return `${side}の枕`;
+
+    const assigned = playerProfile(p)?.name || '';
+    const suffix = assigned ? ` ${assigned}` : '';
+
+    if (p.role === 'captain') return `${side} 大将${suffix}`;
+    if (p.role === 'libero') return `${side} リベロ${suffix}`;
+    if (p.role === 'support') return `自チーム サポート${p.number}${suffix}`;
+    return `${side} アタッカー${p.number}${suffix}`;
+  }
+
+  function setPosition(el, p) {
+    el.style.left = `${p.x * 100}%`;
+    el.style.top = `${p.y * 100}%`;
+  }
+
+  function isLiberoInGuardZone(p) {
+    if (p.kind !== 'player' || p.role !== 'libero' || p.out || mode !== 'normal') {
+      return false;
+    }
+
+    // court-wrap: left/right 18%, top/bottom 12%
+    // リベロエリアは公式比率を縦向きにした帯。
+    const withinCourtX = p.x >= 0.18 && p.x <= 0.82;
+
+    if (!withinCourtX) return false;
+
+    if (p.team === 'enemy') {
+      // 上側チームのリベロ帯
+      return p.y >= 0.368 && p.y <= 0.431;
+    }
+
+    // 下側チームのリベロ帯
+    return p.y >= 0.569 && p.y <= 0.632;
+  }
+
+  function updateLiberoGuardClass(el, p) {
+    el.classList.toggle('libero-guard', isLiberoInGuardZone(p));
+  }
+
+
+  function stagePointFromEvent(e) {
+    const rect = stage.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+      y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
+    };
+  }
+
+  function drawingSvgElement(d, isPreview = false) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const line = document.createElementNS(ns, 'line');
+
+    line.setAttribute('x1', String(d.x1 * 1000));
+    line.setAttribute('y1', String(d.y1 * 1000));
+    line.setAttribute('x2', String(d.x2 * 1000));
+    line.setAttribute('y2', String(d.y2 * 1000));
+    line.setAttribute('class', `draw-path ${d.kind === 'throw' ? 'throw' : 'move'}`);
+
+    if (d.kind === 'move') {
+      line.setAttribute('marker-end', 'url(#arrowMove)');
+    } else if (d.kind === 'throw') {
+      line.setAttribute('marker-end', 'url(#arrowThrow)');
+    }
+
+    if (isPreview) {
+      line.setAttribute('opacity', '.55');
+      line.setAttribute('stroke-dasharray', '8 6');
+    }
+
+    return line;
+  }
+
+  function renderDrawings() {
+    savedDrawingsEl.replaceChildren();
+
+    drawings.forEach(d => {
+      const el = drawingSvgElement(d);
+      el.dataset.drawingId = d.id;
+
+      if (drawTool === 'erase') {
+        el.classList.add('erase-target');
+        el.style.pointerEvents = 'stroke';
+        el.addEventListener('pointerdown', e => {
+          e.stopPropagation();
+          e.preventDefault();
+          drawings = drawings.filter(item => item.id !== d.id);
+          renderDrawings();
+          updateCurrentTacticBar();
+          updateOverwriteUI();
+          showToast('描画を削除しました');
+        });
+      }
+
+      savedDrawingsEl.appendChild(el);
+    });
+  }
+
+  function setDrawTool(tool) {
+    drawTool = tool;
+    drawingStart = null;
+    previewDrawingEl.replaceChildren();
+
+    [toolMove, toolArrowMove, toolArrowThrow, toolLine, toolErase].forEach(btn => btn.classList.remove('active'));
+
+    const activeMap = {
+      move: toolMove,
+      arrowMove: toolArrowMove,
+      arrowThrow: toolArrowThrow,
+      line: toolLine,
+      erase: toolErase
+    };
+
+    activeMap[tool]?.classList.add('active');
+    stage.classList.toggle('drawing-mode', tool !== 'move');
+
+    if (tool === 'move') statusEl.textContent = '駒をドラッグして配置してください。';
+    if (tool === 'arrowMove') statusEl.textContent = '始点から終点へドラッグすると「移動矢印」を描けます。';
+    if (tool === 'arrowThrow') statusEl.textContent = '始点から終点へドラッグすると「投球矢印」を描けます。';
+    if (tool === 'line') statusEl.textContent = '始点から終点へドラッグすると線を描けます。';
+    if (tool === 'erase') statusEl.textContent = '消したい矢印・線をタップしてください。';
+
+    renderDrawings();
+  }
+
+  function startDrawing(e) {
+    if (drawTool === 'move' || drawTool === 'erase') return;
+    e.preventDefault();
+    drawingStart = stagePointFromEvent(e);
+    try { drawLayer.setPointerCapture(e.pointerId); } catch {}
+  }
+
+  function moveDrawing(e) {
+    if (!drawingStart || drawTool === 'move' || drawTool === 'erase') return;
+    e.preventDefault();
+
+    const end = stagePointFromEvent(e);
+    const kind = drawTool === 'arrowThrow' ? 'throw' : drawTool === 'arrowMove' ? 'move' : 'line';
+    const preview = {
+      x1: drawingStart.x,
+      y1: drawingStart.y,
+      x2: end.x,
+      y2: end.y,
+      kind
+    };
+
+    previewDrawingEl.replaceChildren(drawingSvgElement(preview, true));
+  }
+
+  function endDrawing(e) {
+    if (!drawingStart || drawTool === 'move' || drawTool === 'erase') return;
+    e.preventDefault();
+
+    const end = stagePointFromEvent(e);
+    const dx = end.x - drawingStart.x;
+    const dy = end.y - drawingStart.y;
+
+    if (Math.hypot(dx, dy) > .018) {
+      drawings.push({
+        id: `d-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+        x1: drawingStart.x,
+        y1: drawingStart.y,
+        x2: end.x,
+        y2: end.y,
+        kind: drawTool === 'arrowThrow' ? 'throw' : drawTool === 'arrowMove' ? 'move' : 'line'
+      });
+    }
+
+    drawingStart = null;
+    previewDrawingEl.replaceChildren();
+    renderDrawings();
+    updateCurrentTacticBar();
+    updateOverwriteUI();
+
+    try { drawLayer.releasePointerCapture(e.pointerId); } catch {}
+  }
+
+  drawLayer.addEventListener('pointerdown', startDrawing);
+  drawLayer.addEventListener('pointermove', moveDrawing);
+  drawLayer.addEventListener('pointerup', endDrawing);
+  drawLayer.addEventListener('pointercancel', () => {
+    drawingStart = null;
+    previewDrawingEl.replaceChildren();
+  });
+
+  toolMove.addEventListener('click', () => {
+    setDrawTool('move');
+    render();
+  });
+
+  toggleDrawToolsBtn.addEventListener('click', () => {
+    const willOpen = drawToolbar.classList.contains('compact');
+    drawToolbar.classList.toggle('compact');
+    toggleDrawToolsBtn.classList.toggle('active', willOpen);
+    if (!willOpen) setDrawTool('move');
+  });
+
+  toolArrowMove.addEventListener('click', () => setDrawTool('arrowMove'));
+  toolArrowThrow.addEventListener('click', () => setDrawTool('arrowThrow'));
+  toolLine.addEventListener('click', () => setDrawTool('line'));
+  toolErase.addEventListener('click', () => setDrawTool('erase'));
+
+  clearDrawingsBtn.addEventListener('click', () => {
+    if (!drawings.length) {
+      showToast('消す描画がありません');
+      return;
+    }
+    if (!confirm('矢印・線をすべて消しますか？')) return;
+    drawings = [];
+    renderDrawings();
+    updateCurrentTacticBar();
+    updateOverwriteUI();
+    showToast('描画をすべて消しました');
+  });
+
+  function render() {
+    stage.querySelectorAll('.piece').forEach(el => el.remove());
+
+    pieces.forEach(p => {
+      if (!showPillows && p.kind === 'pillow') return;
+
+      const el = document.createElement('div');
+      el.className = 'piece';
+      el.dataset.id = p.id;
+
+      if (p.kind === 'pillow') {
+        el.classList.add('pillow');
+      } else {
+        el.classList.add(p.team);
+        if (p.role === 'support') el.classList.add('support');
+        if (p.role === 'captain') {
+          el.classList.add('captain');
+        }
+        const profile = playerProfile(p);
+        const assignedName = profile?.name || '';
+
+        if (assignedName) {
+          el.classList.add('named');
+          const nameLength = Array.from(assignedName).length;
+          el.classList.add(nameLength <= 1 ? 'name-1' : 'name-2');
+        }
+
+        const label = document.createElement('span');
+        label.className = 'piece-label';
+        label.textContent = assignedName || p.label;
+        el.appendChild(label);
+
+        if (assignedName) {
+          const roleLabel = document.createElement('span');
+          roleLabel.className = 'piece-role';
+          roleLabel.textContent = p.label;
+          el.appendChild(roleLabel);
+        }
+        if (profile?.hand) {
+          const hand = document.createElement('span');
+          hand.className = `hand-badge ${profile.hand}`;
+          hand.textContent = profile.hand === 'right' ? '右' : profile.hand === 'left' ? '左' : '両';
+          el.appendChild(hand);
+        }
+        if (p.out) el.classList.add('out');
+      }
+
+      if (selectedId === p.id) el.classList.add('selected');
+      setPosition(el, p);
+      updateLiberoGuardClass(el, p);
+      bindDrag(el, p);
+      stage.appendChild(el);
+    });
+
+    updateSelectionUI();
+    applyMode();
+    renderDrawings();
+    updateCurrentTacticBar();
+  }
+
+  function bindDrag(el, p) {
+    let pointerId = null;
+    let startClientX = 0;
+    let startClientY = 0;
+    let startX = p.x;
+    let startY = p.y;
+    let moved = false;
+
+    el.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      pointerId = e.pointerId;
+      startClientX = e.clientX;
+      startClientY = e.clientY;
+      startX = p.x;
+      startY = p.y;
+      moved = false;
+      try { el.setPointerCapture(pointerId); } catch {}
+    });
+
+    el.addEventListener('pointermove', e => {
+      if (e.pointerId !== pointerId) return;
+      const rect = stage.getBoundingClientRect();
+      const dx = (e.clientX - startClientX) / rect.width;
+      const dy = (e.clientY - startClientY) / rect.height;
+      if (Math.abs(e.clientX - startClientX) + Math.abs(e.clientY - startClientY) > 5) moved = true;
+
+      p.x = Math.max(.018, Math.min(.982, startX + dx));
+      p.y = Math.max(.025, Math.min(.975, startY + dy));
+      setPosition(el, p);
+      updateLiberoGuardClass(el, p);
+    });
+
+    const end = e => {
+      if (e.pointerId !== pointerId) return;
+      try { el.releasePointerCapture(pointerId); } catch {}
+      pointerId = null;
+
+      if (!moved && p.kind === 'player') {
+        selectedId = selectedId === p.id ? null : p.id;
+        render();
+      } else {
+        if (selectedId === p.id) updateSelectionUI();
+        updateCurrentTacticBar();
+        updateOverwriteUI();
+      }
+    };
+
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+  }
+
+  function selectedPiece() {
+    return pieces.find(p => p.id === selectedId) || null;
+  }
+
+  function updateSelectionUI() {
+    const p = selectedPiece();
+    hitBtn.hidden = true;
+    restoreBtn.hidden = true;
+    if (!p) {
+      statusEl.textContent = '駒をドラッグして配置。アタッカー・リベロをタップすると操作できます。';
+      return;
+    }
+
+    statusEl.textContent = `${pieceName(p)} を選択中`;
+
+
+    if (p.role === 'attacker' || p.role === 'libero') {
+      if (p.out) restoreBtn.hidden = false;
+      else {
+        hitBtn.textContent = p.role === 'libero' && mode === 'normal' ? 'OUTにする' : '💥 ヒット';
+        hitBtn.hidden = false;
+      }
+    }
+  }
+
+  function outPosition(p) {
+    // 待機・OUT用布団の中央位置。自チームは下、相手は上。
+    const mineX = {libero:.266, 1:.416, 2:.566, 3:.716};
+    const enemyX = {1:.266, 2:.416, 3:.566, libero:.716};
+    const key = p.role === 'libero' ? 'libero' : p.number;
+    return {
+      x: (p.team === 'mine' ? mineX : enemyX)[key] || .50,
+      y: p.team === 'mine' ? .932 : .068
+    };
+  }
+
+  hitBtn.addEventListener('click', () => {
+    const p = selectedPiece();
+    if (!p || (p.role !== 'attacker' && p.role !== 'libero') || p.out) return;
+
+    p.prevX = p.x;
+    p.prevY = p.y;
+    p.out = true;
+
+    const pos = outPosition(p);
+    p.x = pos.x;
+    p.y = pos.y;
+
+    showToast(`${pieceName(p)}：OUT`);
+    render();
+  });
+
+  restoreBtn.addEventListener('click', () => {
+    const p = selectedPiece();
+    if (!p || (p.role !== 'attacker' && p.role !== 'libero') || !p.out) return;
+
+    p.out = false;
+    if (typeof p.prevX === 'number' && typeof p.prevY === 'number') {
+      p.x = p.prevX;
+      p.y = p.prevY;
+    }
+    delete p.prevX;
+    delete p.prevY;
+
+    showToast(`${pieceName(p)}：復帰`);
+    render();
+  });
+
+  function applyMode() {
+    const normal = mode === 'normal';
+    normalBtn.classList.toggle('active', normal);
+    finalBtn.classList.toggle('active', !normal);
+    zoneIds.forEach(id => {
+      document.getElementById(id).style.display = normal ? '' : 'none';
+    });
+
+    stage.querySelectorAll('.piece').forEach(el => {
+      const p = pieces.find(piece => piece.id === el.dataset.id);
+      if (p) updateLiberoGuardClass(el, p);
+    });
+    updateSelectionUI();
+    updateCurrentTacticBar();
+  }
+
+  function updatePillowToggleUI() {
+    pillowToggleBtn.classList.toggle('active-toggle', !showPillows);
+    pillowToggleBtn.textContent = showPillows ? '枕なし' : '枕あり';
+  }
+
+  pillowToggleBtn.addEventListener('click', () => {
+    showPillows = !showPillows;
+    selectedId = null;
+    render();
+    updatePillowToggleUI();
+    showToast(showPillows ? '枕を表示しました' : '枕なしモード');
+  });
+
+  normalBtn.addEventListener('click', () => {
+    mode = 'normal';
+    applyMode();
+    showToast('通常モード');
+  });
+
+  finalBtn.addEventListener('click', () => {
+    mode = 'final30';
+    applyMode();
+    showToast('残り30秒モード');
+  });
+
+  function startFormation() {
+    const assignments = new Map(
+      pieces
+        .filter(p => p.team === 'mine' && p.kind === 'player' && p.memberId)
+        .map(p => [p.id, p.memberId])
+    );
+
+    pieces = clone(defaults);
+
+    pieces.forEach(p => {
+      if (assignments.has(p.id)) p.memberId = assignments.get(p.id);
+    });
+    selectedId = null;
+    mode = 'normal';
+    showPillows = false;
+    drawings = [];
+    currentTacticId = null;
+    setDrawTool('move');
+    render();
+    updatePillowToggleUI();
+    showToast('配置をリセットしました');
+  }
+
+  resetBtn.addEventListener('click', () => {
+    if (!confirm('配置をリセットしますか？')) return;
+    startFormation();
+  });
+
+
+  membersBtn.addEventListener('click', openMembersModal);
+
+  closeMembersBtn.addEventListener('click', () => {
+    membersModal.hidden = true;
+    cleanupLineupDrag();
+  });
+
+  membersModal.addEventListener('pointerdown', e => {
+    if (e.target === membersModal) {
+      membersModal.hidden = true;
+      cleanupLineupDrag();
+    }
+  });
+
+  saveMembersBtn.addEventListener('click', () => {
+    members = clone(draftMembers);
+    activeMemberSet().enemies = normalizeEnemies(draftEnemies);
+    saveMembersToStorage();
+
+    ownPositionIds.forEach(pieceId => {
+      const p = pieces.find(piece => piece.id === pieceId);
+      if (!p) return;
+
+      const memberId = draftSlots[pieceId] || '';
+      if (memberId) p.memberId = memberId;
+      else delete p.memberId;
+    });
+
+    membersModal.hidden = true;
+    selectedId = null;
+    cleanupLineupDrag();
+    render();
+    showToast('セット編成を反映しました');
+  });
+
+
+  const TACTICS_KEY = 'makura-tactics-v1';
+
+  function getTactics() {
+    try {
+      const raw = localStorage.getItem(TACTICS_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function setTactics(list) {
+    localStorage.setItem(TACTICS_KEY, JSON.stringify(list));
+    window.MakuraCloud?.schedulePush?.();
+  }
+
+  function currentBoardSnapshot() {
+    return {
+      version: 2,
+      mode,
+      showPillows,
+      pieces: clone(pieces),
+      drawings: clone(drawings)
+    };
+  }
+
+  function applyBoardSnapshot(data) {
+    if (!data || !Array.isArray(data.pieces)) throw new Error('invalid board data');
+
+    const savedById = new Map(data.pieces.map(p => [p.id, p]));
+    pieces = defaults.map(base => {
+      const saved = savedById.get(base.id);
+      if (!saved) return clone(base);
+
+      const merged = { ...base, ...saved };
+
+      return merged;
+    });
+
+    mode = data.mode === 'final30' ? 'final30' : 'normal';
+    showPillows = data.showPillows !== false;
+    drawings = Array.isArray(data.drawings) ? clone(data.drawings) : [];
+    selectedId = null;
+    setDrawTool('move');
+    render();
+    updatePillowToggleUI();
+  }
+
+
+  function snapshotComparable(snapshot) {
+    if (!snapshot) return '';
+    return JSON.stringify(snapshot);
+  }
+
+  function currentTacticRecord() {
+    if (!currentTacticId) return null;
+    return getTactics().find(t => t.id === currentTacticId) || null;
+  }
+
+  function isCurrentTacticDirty() {
+    const current = currentTacticRecord();
+    if (!current?.board) return false;
+    return snapshotComparable(current.board) !== snapshotComparable(currentBoardSnapshot());
+  }
+
+  function updateCurrentTacticBar() {
+    if (!boardTacticName || !quickSaveBtn) return;
+
+    const current = currentTacticRecord();
+
+    if (!current) {
+      boardTacticName.textContent = '未保存の配置';
+      boardTacticDirty.hidden = true;
+      boardTacticMemo.textContent = '';
+      boardTacticMemo.hidden = true;
+      quickSaveBtn.textContent = '新規保存';
+      return;
+    }
+
+    boardTacticName.textContent = current.name || '名称未設定';
+    boardTacticDirty.hidden = !isCurrentTacticDirty();
+
+    const memoText = current.memo?.trim() || '';
+    boardTacticMemo.textContent = memoText;
+    boardTacticMemo.hidden = !memoText;
+
+    quickSaveBtn.textContent = '上書き';
+  }
+
+  function fillTacticEditorFromCurrent() {
+    const current = currentTacticRecord();
+
+    if (current) {
+      tacticNameInput.value = current.name || '';
+      tacticMemoInput.value = current.memo || '';
+    } else {
+      tacticNameInput.value = '';
+      tacticMemoInput.value = '';
+    }
+  }
+
+  function overwriteCurrentTactic({ updateMetadata = false } = {}) {
+    if (!currentTacticId) {
+      showToast('上書きする戦術を先に開いてください');
+      return false;
+    }
+
+    const tactics = getTactics();
+    const index = tactics.findIndex(t => t.id === currentTacticId);
+
+    if (index < 0) {
+      currentTacticId = null;
+      updateOverwriteUI();
+      updateCurrentTacticBar();
+      showToast('保存元の戦術が見つかりません');
+      return false;
+    }
+
+    const updated = {
+      ...tactics[index],
+      updatedAt: Date.now(),
+      memberSetId: activeMemberSetId,
+      board: currentBoardSnapshot()
+    };
+
+    if (updateMetadata) {
+      const newName = tacticNameInput.value.trim();
+      if (!newName) {
+        showToast('戦術名を入力してください');
+        tacticNameInput.focus();
+        return false;
+      }
+
+      updated.name = newName.slice(0, 30);
+      updated.memo = tacticMemoInput.value.trim().slice(0, 300);
+    }
+
+    tactics[index] = updated;
+    setTactics(tactics);
+    currentTacticId = updated.id;
+    renderTacticList();
+    updateOverwriteUI();
+    updateCurrentTacticBar();
+    showToast(`「${updated.name}」を上書きしました`);
+    return true;
+  }
+
+  function tacticMetaText(tactic) {
+    const d = new Date(tactic.updatedAt || tactic.createdAt || Date.now());
+    const dateText = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const drawingCount = Array.isArray(tactic.board?.drawings) ? tactic.board.drawings.length : 0;
+    const setName = memberSets.find(set => set.id === tactic.memberSetId)?.name || '現在のメンバー';
+    return `${dateText} ・ ${setName} ・ 描画 ${drawingCount}本`;
+  }
+
+
+  function updateOverwriteUI() {
+    const tactics = getTactics();
+    const current = tactics.find(t => t.id === currentTacticId);
+
+    if (current) {
+      overwriteTacticBtn.disabled = false;
+      currentTacticLabel.textContent = isCurrentTacticDirty()
+        ? `編集中：${current.name}（未保存の変更あり）`
+        : `編集中：${current.name}`;
+    } else {
+      overwriteTacticBtn.disabled = true;
+      currentTacticLabel.textContent = '保存済み戦術を開くと上書きできます';
+    }
+
+    updateCurrentTacticBar();
+  }
+
+  function renderTacticList() {
+    const tactics = getTactics().sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    tacticList.replaceChildren();
+
+    if (!tactics.length) {
+      const empty = document.createElement('div');
+      empty.className = 'tactic-empty';
+      empty.textContent = '保存した戦術はまだありません。';
+      tacticList.appendChild(empty);
+      return;
+    }
+
+    tactics.forEach(tactic => {
+      const item = document.createElement('div');
+      item.className = 'tactic-item';
+
+      const info = document.createElement('div');
+      const name = document.createElement('div');
+      name.className = 'tactic-name';
+      name.textContent = tactic.name;
+
+      const meta = document.createElement('div');
+      meta.className = 'tactic-meta';
+      meta.textContent = tacticMetaText(tactic);
+
+      info.append(name, meta);
+
+      if (tactic.memo?.trim()) {
+        const memo = document.createElement('div');
+        memo.className = 'tactic-memo-preview';
+        memo.textContent = tactic.memo.trim();
+        info.appendChild(memo);
+      }
+
+      const load = document.createElement('button');
+      load.className = 'mini-button';
+      load.type = 'button';
+      load.textContent = '開く';
+      load.addEventListener('click', () => {
+        try {
+          if (tactic.memberSetId && memberSets.some(set => set.id === tactic.memberSetId)) {
+            selectMemberSet(tactic.memberSetId);
+          }
+          applyBoardSnapshot(tactic.board);
+          currentTacticId = tactic.id;
+          updateOverwriteUI();
+          updateCurrentTacticBar();
+          tacticsModal.hidden = true;
+          showToast(`「${tactic.name}」を開きました`);
+        } catch {
+          showToast('戦術を読み込めませんでした');
+        }
+      });
+
+      const del = document.createElement('button');
+      del.className = 'danger-mini';
+      del.type = 'button';
+      del.textContent = '削除';
+      del.addEventListener('click', () => {
+        if (!confirm(`「${tactic.name}」を削除しますか？`)) return;
+        const next = getTactics().filter(t => t.id !== tactic.id);
+        setTactics(next);
+        if (currentTacticId === tactic.id) currentTacticId = null;
+        renderTacticList();
+        updateOverwriteUI();
+        updateCurrentTacticBar();
+        showToast('戦術を削除しました');
+      });
+
+      item.append(info, load, del);
+      tacticList.appendChild(item);
+    });
+  }
+
+  tacticsBtn.addEventListener('click', () => {
+    renderTacticList();
+    updateOverwriteUI();
+    fillTacticEditorFromCurrent();
+    tacticsModal.hidden = false;
+    setTimeout(() => tacticNameInput.focus(), 30);
+  });
+
+
+  quickSaveBtn.addEventListener('click', () => {
+    if (currentTacticRecord()) {
+      overwriteCurrentTactic({ updateMetadata: false });
+      return;
+    }
+
+    renderTacticList();
+    updateOverwriteUI();
+    tacticNameInput.value = '';
+    tacticMemoInput.value = '';
+    tacticsModal.hidden = false;
+    setTimeout(() => tacticNameInput.focus(), 30);
+  });
+
+  closeTacticsBtn.addEventListener('click', () => {
+    tacticsModal.hidden = true;
+  });
+
+  tacticsModal.addEventListener('pointerdown', e => {
+    if (e.target === tacticsModal) tacticsModal.hidden = true;
+  });
+
+  saveTacticBtn.addEventListener('click', () => {
+    const name = tacticNameInput.value.trim();
+    if (!name) {
+      showToast('戦術名を入力してください');
+      tacticNameInput.focus();
+      return;
+    }
+
+    const tactics = getTactics();
+    const now = Date.now();
+    const tactic = {
+      id: `t-${now}-${Math.random().toString(36).slice(2,7)}`,
+      name: name.slice(0, 30),
+      memo: tacticMemoInput.value.trim().slice(0, 300),
+      createdAt: now,
+      updatedAt: now,
+      memberSetId: activeMemberSetId,
+      board: currentBoardSnapshot()
+    };
+
+    tactics.push(tactic);
+    setTactics(tactics);
+    currentTacticId = tactic.id;
+    tacticNameInput.value = '';
+    tacticMemoInput.value = '';
+    renderTacticList();
+    updateOverwriteUI();
+    updateCurrentTacticBar();
+    showToast(`「${tactic.name}」を保存しました`);
+  });
+
+  overwriteTacticBtn.addEventListener('click', () => {
+    overwriteCurrentTactic({ updateMetadata: true });
+  });
+
+
+
+
+  function currentScreenshotTitle() {
+    return currentTacticRecord()?.name || '未保存の配置';
+  }
+
+  function currentScreenshotMemo() {
+    return currentTacticRecord()?.memo?.trim() || '';
+  }
+
+  function canvasRoundRect(ctx, x, y, w, h, r) {
+    const radius = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+  }
+
+  function wrapCanvasText(ctx, text, maxWidth, maxLines = 2) {
+    const chars = Array.from(String(text || ''));
+    const lines = [];
+    let line = '';
+
+    for (const ch of chars) {
+      const next = line + ch;
+      if (line && ctx.measureText(next).width > maxWidth) {
+        lines.push(line);
+        line = ch;
+        if (lines.length >= maxLines) break;
+      } else {
+        line = next;
+      }
+    }
+
+    if (lines.length < maxLines && line) lines.push(line);
+
+    if (lines.length === maxLines) {
+      const used = lines.join('');
+      if (used.length < chars.length) {
+        let last = lines[maxLines - 1];
+        while (last && ctx.measureText(last + '…').width > maxWidth) {
+          last = Array.from(last).slice(0, -1).join('');
+        }
+        lines[maxLines - 1] = last + '…';
+      }
+    }
+
+    return lines;
+  }
+
+  function drawArrowHead(ctx, x1, y1, x2, y2, size) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(
+      x2 - size * Math.cos(angle - Math.PI / 6),
+      y2 - size * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.lineTo(
+      x2 - size * Math.cos(angle + Math.PI / 6),
+      y2 - size * Math.sin(angle + Math.PI / 6)
+    );
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function createTacticImageCanvas() {
+    const width = 1080;
+    const boardHeight = Math.round(width / 0.82);
+    const title = currentScreenshotTitle();
+    const memo = currentScreenshotMemo();
+    const headerHeight = memo ? 152 : 104;
+    const totalHeight = headerHeight + boardHeight + 24;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = totalHeight;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas-context');
+
+    // Background + header
+    ctx.fillStyle = '#f5f5f2';
+    ctx.fillRect(0, 0, width, totalHeight);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, headerHeight);
+    ctx.strokeStyle = '#dfe4e8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, headerHeight - 1);
+    ctx.lineTo(width, headerHeight - 1);
+    ctx.stroke();
+
+    ctx.fillStyle = '#27313a';
+    ctx.font = '900 30px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText(title, 34, 24);
+
+    if (memo) {
+      ctx.fillStyle = '#65717b';
+      ctx.font = '500 18px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
+      const lines = wrapCanvasText(ctx, memo, width - 68, 2);
+      lines.forEach((line, i) => ctx.fillText(line, 34, 70 + i * 28));
+    }
+
+    // Board frame
+    const ox = 0;
+    const oy = headerHeight;
+    const W = width;
+    const H = boardHeight;
+
+    ctx.fillStyle = '#f9fafb';
+    ctx.fillRect(ox, oy, W, H);
+
+    // Court geometry
+    const courtX = ox + W * 0.18;
+    const courtY = oy + H * 0.12;
+    const courtW = W * 0.64;
+    const courtH = H * 0.76;
+    const teamH = courtH * 0.40909;
+    const mineY = courtY + courtH - teamH;
+    const enemyY = courtY;
+
+    const drawTeamCourt = (x, y, w, h) => {
+      ctx.fillStyle = '#f6f1e6';
+      ctx.fillRect(x, y, w, h);
+
+      // Internal grid
+      ctx.strokeStyle = 'rgba(60,70,80,.22)';
+      ctx.lineWidth = 1.5;
+      for (let i = 1; i < 5; i++) {
+        const gy = y + h * (i / 5);
+        ctx.beginPath();
+        ctx.moveTo(x, gy);
+        ctx.lineTo(x + w, gy);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = 'rgba(60,70,80,.19)';
+      for (let i = 1; i < 4; i++) {
+        const gx = x + w * (i / 4);
+        ctx.beginPath();
+        ctx.moveTo(gx, y);
+        ctx.lineTo(gx, y + h);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = '#59656f';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(x, y, w, h);
+    };
+
+    drawTeamCourt(courtX, enemyY, courtW, teamH);
+    drawTeamCourt(courtX, mineY, courtW, teamH);
+
+    // Zones over the courts
+    const zone = (topRatio, heightRatio, fill) => {
+      ctx.fillStyle = fill;
+      ctx.fillRect(
+        courtX,
+        courtY + courtH * topRatio,
+        courtW,
+        courtH * heightRatio
+      );
+    };
+
+    zone(0, .24545, 'rgba(244,117,172,.16)');
+    zone(.32727, .08182, 'rgba(63,191,219,.18)');
+    zone(.59091, .08182, 'rgba(63,191,219,.18)');
+    zone(.75455, .24545, 'rgba(244,117,172,.16)');
+
+    // Redraw outer court borders on top of zones
+    ctx.strokeStyle = '#59656f';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(courtX, enemyY, courtW, teamH);
+    ctx.strokeRect(courtX, mineY, courtW, teamH);
+
+    // Futons
+    const futonW = W * .052;
+    const futonH = H * .088;
+    const futonXs = [.24, .39, .54, .69];
+
+    ctx.fillStyle = '#dfe3e7';
+    ctx.strokeStyle = '#bcc4cb';
+    ctx.lineWidth = 2;
+
+    const drawFuton = (px, py) => {
+      const x = ox + W * px;
+      const y = oy + H * py;
+      canvasRoundRect(ctx, x, y, futonW, futonH, 5);
+      ctx.fill();
+      ctx.stroke();
+    };
+
+    futonXs.forEach(px => drawFuton(px, .015));
+    futonXs.forEach(px => drawFuton(px, .897));
+
+    // Drawings
+    drawings.forEach(d => {
+      const x1 = ox + d.x1 * W;
+      const y1 = oy + d.y1 * H;
+      const x2 = ox + d.x2 * W;
+      const y2 = oy + d.y2 * H;
+
+      ctx.strokeStyle = d.kind === 'throw' ? '#2F80ED' : '#59656f';
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      if (d.kind === 'move' || d.kind === 'throw') {
+        drawArrowHead(ctx, x1, y1, x2, y2, 18);
+      }
+    });
+
+    // Pieces
+    pieces.forEach(p => {
+      if (!showPillows && p.kind === 'pillow') return;
+
+      const cx = ox + p.x * W;
+      const cy = oy + p.y * H;
+
+      if (p.kind === 'pillow') {
+        const pw = 24;
+        const ph = 46;
+        const grad = ctx.createLinearGradient(cx - pw/2, cy, cx + pw/2, cy);
+        grad.addColorStop(0, '#5b9bf3');
+        grad.addColorStop(.58, '#2F80ED');
+        grad.addColorStop(1, '#216fce');
+
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = 'rgba(255,255,255,.95)';
+        ctx.lineWidth = 2;
+        canvasRoundRect(ctx, cx - pw/2, cy - ph/2, pw, ph, 12);
+        ctx.fill();
+        ctx.stroke();
+        return;
+      }
+
+      const profile = playerProfile(p);
+      const assignedName = profile?.name || '';
+      const fill = p.out
+        ? '#7c858d'
+        : p.role === 'support'
+          ? '#6F8F72'
+          : p.team === 'mine'
+            ? '#C96A4A'
+            : '#3F4852';
+
+      const guard = isLiberoInGuardZone(p);
+
+      if (guard) {
+        const gw = 104;
+        const gh = 48;
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = 'rgba(255,255,255,.96)';
+        ctx.lineWidth = 3;
+        canvasRoundRect(ctx, cx - gw/2, cy - gh/2, gw, gh, 14);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        const diameter = p.role === 'support' ? 42 : 58;
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = p.role === 'captain'
+          ? '#FFD54F'
+          : 'rgba(255,255,255,.95)';
+        ctx.lineWidth = p.role === 'captain' ? 6 : 3;
+        ctx.beginPath();
+        ctx.arc(cx, cy, diameter / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const mainLabel = assignedName || p.label;
+      const roleLabel = assignedName ? p.label : '';
+
+      const mainSize = p.role === 'support'
+        ? (Array.from(mainLabel).length > 1 ? 17 : 20)
+        : guard
+          ? (Array.from(mainLabel).length > 1 ? 22 : 24)
+          : (Array.from(mainLabel).length > 1 ? 23 : 26);
+
+      ctx.font = `900 ${mainSize}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
+
+      if (roleLabel) {
+        ctx.fillText(mainLabel, cx, cy - (p.role === 'support' ? 4 : 5));
+        ctx.globalAlpha = .84;
+        ctx.font = `800 ${p.role === 'support' ? 10 : 12}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
+        ctx.fillText(roleLabel, cx, cy + (p.role === 'support' ? 11 : 14));
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.fillText(mainLabel, cx, cy);
+      }
+
+      if (profile?.hand) {
+        const badgeText = profile.hand === 'right' ? '右' : profile.hand === 'left' ? '左' : '両';
+        const badgeColor = profile.hand === 'right' ? '#69737d' : profile.hand === 'left' ? '#2F80ED' : '#8b5fbf';
+        const bx = cx + (guard ? 43 : (p.role === 'support' ? 18 : 25));
+        const by = cy - (guard ? 20 : (p.role === 'support' ? 18 : 25));
+        ctx.fillStyle = badgeColor;
+        ctx.beginPath();
+        ctx.arc(bx, by, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = '900 10px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(badgeText, bx, by + .5);
+      }
+    });
+
+    return canvas;
+  }
+
+  function dataUrlToPngFile(dataUrl, filename) {
+    const parts = dataUrl.split(',');
+    const binary = atob(parts[1]);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    return new File([bytes], filename, { type: 'image/png' });
+  }
+
+  function downloadTacticPng(dataUrl, filename) {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast('戦術画像を保存しました');
+  }
+
+  screenshotBtn.addEventListener('click', () => {
+    const original = screenshotBtn.textContent;
+    screenshotBtn.disabled = true;
+    screenshotBtn.textContent = '…';
+
+    try {
+      const canvas = createTacticImageCanvas();
+      const dataUrl = canvas.toDataURL('image/png', 1);
+
+      const safeName = currentScreenshotTitle()
+        .replace(/[\\/:*?"<>|]/g, '_')
+        .slice(0, 40) || '戦術ボード';
+
+      const file = dataUrlToPngFile(dataUrl, `${safeName}.png`);
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        navigator.share({
+          files: [file],
+          title: currentScreenshotTitle()
+        }).then(() => {
+          showToast('戦術画像を共有しました');
+        }).catch(error => {
+          if (error?.name !== 'AbortError') {
+            console.error('Share failed:', error);
+            downloadTacticPng(dataUrl, file.name);
+          }
+        });
+      } else {
+        downloadTacticPng(dataUrl, file.name);
+      }
+    } catch (error) {
+      console.error('Screenshot export failed:', error);
+      showToast('画像を作成できませんでした');
+    } finally {
+      screenshotBtn.disabled = false;
+      screenshotBtn.textContent = original;
+    }
+  });
+
+
+  function exportCloudData() {
+    return {
+      schemaVersion: 2,
+      tactics: clone(getTactics()),
+      memberSets: clone(memberSets),
+      activeMemberSetId,
+      members: clone(members)
+    };
+  }
+
+  function importCloudData(data) {
+    if (!data || typeof data !== 'object') return;
+
+    if (Array.isArray(data.tactics)) {
+      localStorage.setItem(TACTICS_KEY, JSON.stringify(data.tactics));
+    }
+
+    if (Array.isArray(data.memberSets) && data.memberSets.length) {
+      memberSets = data.memberSets.map(set => ({
+        id: String(set.id || `set-${Date.now()}`),
+        name: String(set.name || '大会メンバー').slice(0, 30),
+        members: normalizeMembers(set.members),
+        enemies: normalizeEnemies(set.enemies)
+      }));
+      const requestedId = typeof data.activeMemberSetId === 'string' ? data.activeMemberSetId : memberSets[0].id;
+      selectMemberSet(memberSets.some(set => set.id === requestedId) ? requestedId : memberSets[0].id);
+      localStorage.setItem(MEMBER_SETS_KEY, JSON.stringify(memberSets));
+    } else if (Array.isArray(data.members)) {
+      const savedMembers = new Map(data.members.map(m => [m.id, m]));
+      members = blankMembers().map(base => {
+        const saved = savedMembers.get(base.id);
+        return {
+          id: base.id,
+          name: saved && typeof saved.name === 'string'
+            ? Array.from(saved.name.trim()).slice(0, 2).join('')
+            : '',
+          hand: normalizeHand(saved?.hand)
+        };
+      });
+      activeMemberSet().members = members;
+      localStorage.setItem(MEMBER_SETS_KEY, JSON.stringify(memberSets));
+      localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
+    }
+
+    if (currentTacticId && !getTactics().some(t => t.id === currentTacticId)) {
+      currentTacticId = null;
+    }
+
+    render();
+    updatePillowToggleUI();
+    updateCurrentTacticBar();
+    if (!tacticsModal.hidden) {
+      renderTacticList();
+      updateOverwriteUI();
+    }
+  }
+
+  window.MakuraAppBridge = {
+    exportCloudData,
+    importCloudData,
+    showToast,
+    openCloudModal() { document.getElementById('cloudModal').hidden = false; }
+  };
+
+  cloudBtn.addEventListener('click', () => {
+    if (window.MakuraCloud?.openModal) window.MakuraCloud.openModal();
+    else window.MakuraAppBridge.openCloudModal();
+  });
+
+
+  render();
+  updatePillowToggleUI();
+  setDrawTool('move');
+})();
+</script>
+
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+  import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBof9CqSHXyB_NWyJDsB9KNqWK9n-fFi3o",
+    authDomain: "makura-tactical-board.firebaseapp.com",
+    projectId: "makura-tactical-board",
+    storageBucket: "makura-tactical-board.firebasestorage.app",
+    messagingSenderId: "1066157591004",
+    appId: "1:1066157591004:web:b40019e68ef3c82c622719",
+    measurementId: "G-RN5WCWGY8S"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  auth.useDeviceLanguage();
+
+  const db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
+
+  const cloudModal = document.getElementById('cloudModal');
+  const cloudBtn = document.getElementById('cloudBtn');
+  const cloudLoginBtn = document.getElementById('cloudLoginBtn');
+  const cloudLogoutBtn = document.getElementById('cloudLogoutBtn');
+  const cloudSyncNowBtn = document.getElementById('cloudSyncNowBtn');
+  const cloudCloseBtn = document.getElementById('cloudCloseBtn');
+  const cloudStatusMain = document.getElementById('cloudStatusMain');
+  const cloudStatusBadge = document.getElementById('cloudStatusBadge');
+  const cloudStatusDetail = document.getElementById('cloudStatusDetail');
+  const cloudUserEmail = document.getElementById('cloudUserEmail');
+  const cloudLastSync = document.getElementById('cloudLastSync');
+  const cloudUid = document.getElementById('cloudUid');
+
+  let currentUser = null;
+  let unsubscribeSnapshot = null;
+  let pushTimer = null;
+  let applyingRemote = false;
+  let initializedForUser = false;
+  let localDirty = false;
+  let lastSyncAt = null;
+
+  function formatSyncTime(value) {
+    if (!value) return '未同期';
+
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '未同期';
+
+    const now = new Date();
+    const sameDay =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate();
+
+    const timeText = new Intl.DateTimeFormat('ja-JP', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+
+    if (sameDay) return `今日 ${timeText}`;
+
+    return new Intl.DateTimeFormat('ja-JP', {
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  }
+
+  function setLastSync(value) {
+    lastSyncAt = value ? new Date(value) : null;
+    cloudLastSync.textContent = `最終同期：${formatSyncTime(lastSyncAt)}`;
+  }
+
+  function cloudUpdatedAtFromData(data) {
+    if (!data) return null;
+
+    if (data.updatedAt && typeof data.updatedAt.toDate === 'function') {
+      return data.updatedAt.toDate();
+    }
+
+    if (typeof data.clientUpdatedAt === 'number') {
+      return new Date(data.clientUpdatedAt);
+    }
+
+    return null;
+  }
+
+  function setCloudStatus(main, badge, detail, ok = false) {
+    cloudStatusMain.textContent = main;
+    cloudStatusBadge.textContent = badge;
+    cloudStatusBadge.classList.toggle('ok', ok);
+    cloudStatusBadge.classList.toggle('warn', !ok);
+    cloudStatusDetail.textContent = detail || '';
+  }
+
+  function updateCloudUi(user) {
+    currentUser = user || null;
+    if (user) {
+      cloudBtn.textContent = '☁ 同期中';
+      cloudLoginBtn.hidden = true;
+      cloudLogoutBtn.hidden = false;
+      cloudSyncNowBtn.hidden = false;
+      cloudUserEmail.textContent = user.email ? `Google: ${user.email}` : '';
+      cloudUid.textContent = `UID: ${user.uid}`;
+      cloudLastSync.textContent = `最終同期：${formatSyncTime(lastSyncAt)}`;
+      setCloudStatus('Firebaseに接続済み', 'CLOUD', '戦術とメンバーをこのGoogleアカウントで同期します。', true);
+    } else {
+      cloudBtn.textContent = '☁ 未接続';
+      cloudLoginBtn.hidden = false;
+      cloudLogoutBtn.hidden = true;
+      cloudSyncNowBtn.hidden = true;
+      cloudUserEmail.textContent = '';
+      cloudUid.textContent = '';
+      setLastSync(null);
+      setCloudStatus('未接続', 'LOCAL', 'Googleログインすると、この端末の戦術とメンバーをFirebaseで同期できます。', false);
+    }
+  }
+
+  function dataRefFor(user) {
+    return doc(db, 'users', user.uid, 'appData', 'main');
+  }
+
+  async function pushNow() {
+    if (!currentUser || applyingRemote) return;
+    const payload = window.MakuraAppBridge?.exportCloudData?.();
+    if (!payload) return;
+
+    try {
+      setCloudStatus('同期しています…', 'SYNC', 'Firebaseへ保存しています。', true);
+      cloudBtn.textContent = '☁ 同期中…';
+      await setDoc(dataRefFor(currentUser), {
+        ...payload,
+        clientUpdatedAt: Date.now(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      localDirty = false;
+      setLastSync(new Date());
+      setCloudStatus('同期済み', 'CLOUD', `最新の変更をFirebaseへ保存しました。最終同期：${formatSyncTime(lastSyncAt)}`, true);
+      cloudBtn.textContent = '☁ 同期済';
+    } catch (error) {
+      console.error('Cloud push failed:', error);
+      setCloudStatus('同期待ち', 'OFFLINE', `変更あり・同期待ち。最終同期：${formatSyncTime(lastSyncAt)}`, false);
+      cloudBtn.textContent = '☁ 同期待ち';
+    }
+  }
+
+  function schedulePush() {
+    if (!currentUser || applyingRemote || !initializedForUser) return;
+    localDirty = true;
+    setCloudStatus('変更あり・同期待ち', 'WAIT', `自動同期を待っています。最終同期：${formatSyncTime(lastSyncAt)}`, false);
+    cloudBtn.textContent = '☁ 同期待ち';
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(pushNow, 350);
+  }
+
+  async function initializeUserSync(user) {
+    initializedForUser = false;
+    if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+    const ref = dataRefFor(user);
+    try {
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const cloudData = snap.data();
+        applyingRemote = true;
+        window.MakuraAppBridge?.importCloudData?.(cloudData);
+        applyingRemote = false;
+        setLastSync(cloudUpdatedAtFromData(cloudData) || new Date());
+        window.MakuraAppBridge?.showToast?.('クラウドの戦術を読み込みました');
+      } else {
+        const initialNow = new Date();
+        await setDoc(ref, {
+          ...window.MakuraAppBridge.exportCloudData(),
+          clientUpdatedAt: initialNow.getTime(),
+          updatedAt: serverTimestamp()
+        });
+        setLastSync(initialNow);
+        window.MakuraAppBridge?.showToast?.('この端末の戦術をクラウドへ保存しました');
+      }
+      initializedForUser = true;
+      setCloudStatus('同期済み', 'CLOUD', `iPhone・iPad・Macで同期中。最終同期：${formatSyncTime(lastSyncAt)}`, true);
+      cloudBtn.textContent = '☁ 同期済';
+    } catch (error) {
+      console.error('Initial cloud sync failed:', error);
+      initializedForUser = true;
+      setCloudStatus('ログイン済み・Firestore未接続', 'RULES', 'Googleログインは成功しています。次にFirestoreのセキュリティルールを設定してください。', false);
+      cloudBtn.textContent = '☁ 要設定';
+    }
+
+    unsubscribeSnapshot = onSnapshot(
+      ref,
+      { includeMetadataChanges: true },
+      (snap) => {
+        if (!snap.exists() || snap.metadata.hasPendingWrites) return;
+
+        if (localDirty) return;
+
+        const cloudData = snap.data();
+        applyingRemote = true;
+        try {
+          window.MakuraAppBridge?.importCloudData?.(cloudData);
+          if (snap.metadata.fromCache) {
+            const cachedAt = cloudUpdatedAtFromData(cloudData);
+            if (cachedAt) setLastSync(cachedAt);
+            setCloudStatus('オフラインキャッシュ', 'OFFLINE', `現在オフライン。最終同期：${formatSyncTime(lastSyncAt)}`, false);
+            cloudBtn.textContent = '☁ オフライン';
+          } else {
+            setLastSync(cloudUpdatedAtFromData(cloudData) || new Date());
+            setCloudStatus('同期済み', 'CLOUD', `Firebaseの最新データを反映しました。最終同期：${formatSyncTime(lastSyncAt)}`, true);
+            cloudBtn.textContent = '☁ 同期済';
+          }
+        } finally {
+          applyingRemote = false;
+        }
+      },
+      (error) => {
+        console.error('Cloud listener failed:', error);
+        setCloudStatus('同期エラー', 'ERROR', 'Firestoreのルール設定または通信状態を確認してください。', false);
+        cloudBtn.textContent = '☁ エラー';
+      }
+    );
+  }
+
+  cloudLoginBtn.addEventListener('click', async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      setCloudStatus('Googleログイン中…', 'AUTH', 'ログイン画面を開いています。', true);
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error('Google sign in failed:', error);
+      setCloudStatus('ログインできませんでした', 'ERROR', `${error.code || ''} ${error.message || ''}`.trim(), false);
+    }
+  });
+
+  cloudLogoutBtn.addEventListener('click', async () => {
+    await signOut(auth);
+    cloudModal.hidden = true;
+    window.MakuraAppBridge?.showToast?.('Firebaseからログアウトしました');
+  });
+
+  cloudSyncNowBtn.addEventListener('click', pushNow);
+  cloudCloseBtn.addEventListener('click', () => cloudModal.hidden = true);
+  cloudModal.addEventListener('pointerdown', (e) => {
+    if (e.target === cloudModal) cloudModal.hidden = true;
+  });
+
+  window.addEventListener('offline', () => {
+    if (!currentUser) return;
+    setCloudStatus('オフライン', 'OFFLINE', `現在オフライン。最終同期：${formatSyncTime(lastSyncAt)}`, false);
+    cloudBtn.textContent = '☁ オフライン';
+  });
+
+  window.addEventListener('online', () => {
+    if (!currentUser) return;
+
+    if (localDirty) {
+      setCloudStatus('再接続・同期中…', 'SYNC', `未同期の変更を送信しています。最終同期：${formatSyncTime(lastSyncAt)}`, true);
+      cloudBtn.textContent = '☁ 同期中…';
+      pushNow();
+    } else {
+      setCloudStatus('オンライン', 'CLOUD', `接続しました。最終同期：${formatSyncTime(lastSyncAt)}`, true);
+      cloudBtn.textContent = '☁ 同期済';
+    }
+  });
+
+  onAuthStateChanged(auth, async (user) => {
+    updateCloudUi(user);
+    if (!user) {
+      initializedForUser = false;
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+      unsubscribeSnapshot = null;
+      return;
+    }
+    await initializeUserSync(user);
+  });
+
+  window.MakuraCloud = {
+    schedulePush,
+    pushNow,
+    openModal() { cloudModal.hidden = false; }
+  };
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch((error) => {
+        console.warn('Service Worker registration failed:', error);
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
