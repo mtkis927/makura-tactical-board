@@ -758,6 +758,7 @@
     }
     .hand-mark.left::before,
     .hand-mark.both::before { left:-4px; }
+    .piece.enemy .hand-mark.left::before { left:auto; right:-4px; }
     .hand-mark.both::before,
     .hand-mark.both::after { background:#a66de0; }
     .hand-mark.both::after { right:-4px; }
@@ -3324,8 +3325,8 @@
       const guard = isLiberoInGuardZone(p);
 
       if (guard) {
-        const gw = 104;
-        const gh = 48;
+        const gw = 128;
+        const gh = 60;
         ctx.fillStyle = fill;
         ctx.strokeStyle = 'rgba(255,255,255,.96)';
         ctx.lineWidth = 3;
@@ -3333,7 +3334,7 @@
         ctx.fill();
         ctx.stroke();
       } else {
-        const diameter = p.role === 'support' ? 42 : 58;
+        const diameter = p.role === 'support' ? 52 : 72;
         ctx.fillStyle = fill;
         ctx.strokeStyle = p.role === 'captain'
           ? '#FFD54F'
@@ -3353,18 +3354,18 @@
       const roleLabel = assignedName ? p.label : '';
 
       const mainSize = p.role === 'support'
-        ? (Array.from(mainLabel).length > 1 ? 17 : 20)
+        ? (Array.from(mainLabel).length > 1 ? 20 : 24)
         : guard
-          ? (Array.from(mainLabel).length > 1 ? 22 : 24)
-          : (Array.from(mainLabel).length > 1 ? 23 : 26);
+          ? (Array.from(mainLabel).length > 1 ? 27 : 30)
+          : (Array.from(mainLabel).length > 1 ? 28 : 32);
 
       ctx.font = `900 ${mainSize}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
 
       if (roleLabel) {
-        ctx.fillText(mainLabel, cx, cy - (p.role === 'support' ? 4 : 5));
+        ctx.fillText(mainLabel, cx, cy - (p.role === 'support' ? 5 : 7));
         ctx.globalAlpha = .84;
-        ctx.font = `800 ${p.role === 'support' ? 10 : 12}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
-        ctx.fillText(roleLabel, cx, cy + (p.role === 'support' ? 11 : 14));
+        ctx.font = `800 ${p.role === 'support' ? 12 : 15}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
+        ctx.fillText(roleLabel, cx, cy + (p.role === 'support' ? 14 : 18));
         ctx.globalAlpha = 1;
       } else {
         ctx.fillText(mainLabel, cx, cy);
@@ -3372,8 +3373,8 @@
 
       if (profile?.hand === 'left' || profile?.hand === 'both') {
         const markerColor = profile.hand === 'left' ? '#58a6ff' : '#a66de0';
-        const halfW = guard ? 52 : (p.role === 'support' ? 21 : 29);
-        const markerHalfH = guard ? 10 : (p.role === 'support' ? 6 : 8);
+        const halfW = guard ? 64 : (p.role === 'support' ? 26 : 36);
+        const markerHalfH = guard ? 12 : (p.role === 'support' ? 8 : 10);
         const drawHandLine = x => {
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 7;
@@ -3386,7 +3387,7 @@
           ctx.lineWidth = 4;
           ctx.stroke();
         };
-        drawHandLine(cx - halfW);
+        drawHandLine(profile.hand === 'left' && p.team === 'enemy' ? cx + halfW : cx - halfW);
         if (profile.hand === 'both') drawHandLine(cx + halfW);
       }
     });
