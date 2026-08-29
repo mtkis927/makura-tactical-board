@@ -590,7 +590,8 @@
       margin-top: 8px;
     }
 
-    .lineup-grid {
+    .lineup-grid,
+    .enemy-roster-grid {
       display: grid;
       gap: 7px;
     }
@@ -607,7 +608,7 @@
     .lineup-slot {
       min-height: 48px;
       display: grid;
-      grid-template-columns: 34px 52px minmax(0, 1fr) 64px;
+      grid-template-columns: 44px 46px minmax(0, 1fr) 64px;
       gap: 7px;
       align-items: center;
       padding: 6px 8px;
@@ -624,7 +625,8 @@
     }
 
     .lineup-grip {
-      height: 34px;
+      width: 44px;
+      height: 44px;
       border: 0;
       border-radius: 8px;
       background: #edf0f3;
@@ -636,6 +638,9 @@
       cursor: grab;
       touch-action: none;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-user-drag: none;
     }
 
     .lineup-grip:active {
@@ -647,6 +652,8 @@
       font-size: 12px;
       font-weight: 900;
       white-space: nowrap;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .lineup-input {
@@ -654,10 +661,11 @@
       min-width: 0;
       border: 1px solid #cfd6dd;
       border-radius: 9px;
-      padding: 8px 9px;
+      min-height: 44px;
+      padding: 9px 10px;
       background: #fff;
       color: var(--text);
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 900;
       text-align: center;
       outline: none;
@@ -670,10 +678,13 @@
 
     .member-set-tools {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto auto auto;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 7px;
       margin-bottom: 12px;
     }
+
+    .member-set-tools select,
+    .member-set-tools input { grid-column: 1 / -1; min-height:44px; font-size:16px; }
 
     .member-set-tools select,
     .member-set-tools input,
@@ -685,37 +696,54 @@
       background: #fff;
       color: var(--text);
       font-weight: 800;
+      min-height:44px;
+      font-size:16px;
     }
 
-    .enemy-roster-grid { display: grid; gap: 7px; }
     .enemy-roster-row {
       display: grid;
-      grid-template-columns: 52px minmax(0, 1fr) 64px;
+      grid-template-columns: 46px minmax(0, 1fr) 64px;
       gap: 7px;
       align-items: center;
+      min-height: 56px;
+      padding: 6px 8px;
+      border: 1px solid #dde2e7;
+      border-radius: 11px;
+      background:#fbfcfd;
     }
     .enemy-roster-row label { font-size: 12px; font-weight: 900; }
 
-    .hand-badge {
+    .hand-mark {
       position: absolute;
-      right: -5px;
-      top: -5px;
-      min-width: 18px;
-      height: 18px;
-      padding: 0 3px;
-      display: grid;
-      place-items: center;
-      border: 2px solid #fff;
-      border-radius: 9px;
-      color: #fff;
-      font-size: 9px;
-      font-weight: 900;
-      line-height: 1;
-      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+      inset: 0;
+      pointer-events:none;
+      border-radius:inherit;
     }
-    .hand-badge.right { background:#69737d; }
-    .hand-badge.left { background:#2F80ED; }
-    .hand-badge.both { background:#8b5fbf; }
+    .hand-mark.left::before,
+    .hand-mark.both::before,
+    .hand-mark.both::after {
+      content:"";
+      position:absolute;
+      top:28%;
+      bottom:28%;
+      width:4px;
+      border-radius:3px;
+      background:#58a6ff;
+      box-shadow:0 0 0 1px rgba(255,255,255,.85);
+    }
+    .hand-mark.left::before,
+    .hand-mark.both::before { left:-4px; }
+    .hand-mark.both::before,
+    .hand-mark.both::after { background:#a66de0; }
+    .hand-mark.both::after { right:-4px; }
+
+    body.lineup-reordering,
+    body.lineup-reordering * { user-select:none !important; -webkit-user-select:none !important; }
+
+    .member-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:0 0 12px; }
+    .member-tab { border:1px solid #d7dde3; background:#f3f5f7; color:var(--muted); border-radius:10px; min-height:42px; font-weight:900; }
+    .member-tab.active { background:#eaf3ff; color:#1769aa; border-color:#8ab9ee; }
+    .member-panel[hidden] { display:none; }
 
     .lineup-dragging {
       opacity: .35;
@@ -915,6 +943,25 @@
       box-shadow: 0 18px 50px rgba(0,0,0,.22);
       padding: 16px;
     }
+
+    .members-modal-card { padding-top:0; }
+    .members-modal-header {
+      position:sticky;
+      top:0;
+      z-index:5;
+      margin:0 -16px 12px;
+      padding:14px 16px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background:rgba(255,255,255,.96);
+      border-bottom:1px solid #e4e8ec;
+      backdrop-filter:blur(8px);
+    }
+    .members-modal-header .modal-title { margin:0; }
+    .members-header-actions { display:flex; gap:7px; }
+    .members-header-actions button { min-height:40px; }
 
     .modal-title {
       font-size: 17px;
@@ -1379,8 +1426,19 @@
 
 
 <div class="modal-backdrop" id="membersModal" hidden>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="membersModalTitle">
-    <div class="modal-title" id="membersModalTitle">セット編成</div>
+  <div class="modal-card members-modal-card" role="dialog" aria-modal="true" aria-labelledby="membersModalTitle">
+    <div class="members-modal-header">
+      <div class="modal-title" id="membersModalTitle">セット編成</div>
+      <div class="members-header-actions">
+        <button class="mini-button" id="closeMembersBtn" type="button">閉じる</button>
+        <button class="toolbar-button" id="saveMembersBtn" type="button">完了</button>
+      </div>
+    </div>
+
+    <div class="member-tabs" role="tablist" aria-label="編集するチーム">
+      <button class="member-tab active" id="ownMembersTab" type="button" role="tab" aria-selected="true">自チーム</button>
+      <button class="member-tab" id="enemyMembersTab" type="button" role="tab" aria-selected="false">相手チーム</button>
+    </div>
 
     <div class="member-set-tools">
       <select id="memberSetSelect" aria-label="大会メンバーセット"></select>
@@ -1395,14 +1453,12 @@
       大会ごとのメンバーセットです。同じセットを使う戦術には名前・番号・利き腕の変更が共通反映されます。表示は2文字までです。
     </div>
 
-    <div class="lineup-grid" id="lineupGrid"></div>
-
-    <div class="lineup-divider">相手チーム</div>
-    <div class="enemy-roster-grid" id="enemyRosterGrid"></div>
-
-    <div class="modal-actions" style="gap:8px;">
-      <button class="toolbar-button" id="saveMembersBtn" type="button">反映</button>
-      <button class="toolbar-button" id="closeMembersBtn" type="button">閉じる</button>
+    <div class="member-panel" id="ownMembersPanel" role="tabpanel">
+      <div class="lineup-grid" id="lineupGrid"></div>
+    </div>
+    <div class="member-panel" id="enemyMembersPanel" role="tabpanel" hidden>
+      <div class="member-note" style="margin:0 0 10px;">相手の名前・ゼッケン番号と利き腕を必要なときだけ登録できます。</div>
+      <div class="enemy-roster-grid" id="enemyRosterGrid"></div>
     </div>
   </div>
 </div>
@@ -1512,6 +1568,10 @@
   const deleteMemberSetBtn = document.getElementById('deleteMemberSetBtn');
   const saveMembersBtn = document.getElementById('saveMembersBtn');
   const closeMembersBtn = document.getElementById('closeMembersBtn');
+  const ownMembersTab = document.getElementById('ownMembersTab');
+  const enemyMembersTab = document.getElementById('enemyMembersTab');
+  const ownMembersPanel = document.getElementById('ownMembersPanel');
+  const enemyMembersPanel = document.getElementById('enemyMembersPanel');
 
   const toast = document.getElementById('toast');
 
@@ -1738,6 +1798,18 @@
   let draftEnemies = [];
   let draftSlots = {};
   let lineupDrag = null;
+  let memberEditorTeam = 'mine';
+
+  function setMemberEditorTeam(team) {
+    memberEditorTeam = team === 'enemy' ? 'enemy' : 'mine';
+    const own = memberEditorTeam === 'mine';
+    ownMembersTab.classList.toggle('active', own);
+    enemyMembersTab.classList.toggle('active', !own);
+    ownMembersTab.setAttribute('aria-selected', String(own));
+    enemyMembersTab.setAttribute('aria-selected', String(!own));
+    ownMembersPanel.hidden = !own;
+    enemyMembersPanel.hidden = own;
+  }
 
   function buildCurrentLineupSlots() {
     const result = {};
@@ -1799,6 +1871,7 @@
       grip.type = 'button';
       grip.className = 'lineup-grip';
       grip.textContent = '≡';
+      grip.draggable = false;
       grip.setAttribute('aria-label', `${lineupSlotLabels[slotId]}をドラッグして入れ替え`);
 
       const role = document.createElement('div');
@@ -1905,8 +1978,12 @@
     draftEnemies = clone(activeMemberSet().enemies);
     draftSlots = buildCurrentLineupSlots();
     renderLineupModal();
+    setMemberEditorTeam('mine');
     membersModal.hidden = false;
   }
+
+  ownMembersTab.addEventListener('click', () => setMemberEditorTeam('mine'));
+  enemyMembersTab.addEventListener('click', () => setMemberEditorTeam('enemy'));
 
   memberSetSelect.addEventListener('change', () => {
     selectMemberSet(memberSetSelect.value);
@@ -2002,6 +2079,7 @@
       if (!lineupDrag.moved) {
         lineupDrag.moved = true;
         handle.classList.add('lineup-dragging');
+        document.body.classList.add('lineup-reordering');
 
         const member = draftMemberBySlot(sourceSlotId);
         const ghost = document.createElement('div');
@@ -2065,6 +2143,7 @@
 
     if (lineupDrag?.handle) lineupDrag.handle.classList.remove('lineup-dragging');
     if (lineupDrag?.ghost) lineupDrag.ghost.remove();
+    document.body.classList.remove('lineup-reordering');
 
     lineupDrag = null;
   }
@@ -2331,10 +2410,10 @@
           roleLabel.textContent = p.label;
           el.appendChild(roleLabel);
         }
-        if (profile?.hand) {
+        if (profile?.hand === 'left' || profile?.hand === 'both') {
           const hand = document.createElement('span');
-          hand.className = `hand-badge ${profile.hand}`;
-          hand.textContent = profile.hand === 'right' ? '右' : profile.hand === 'left' ? '左' : '両';
+          hand.className = `hand-mark ${profile.hand}`;
+          hand.setAttribute('aria-label', profile.hand === 'left' ? '左利き' : '両利き');
           el.appendChild(hand);
         }
         if (p.out) el.classList.add('out');
@@ -3200,23 +3279,24 @@
         ctx.fillText(mainLabel, cx, cy);
       }
 
-      if (profile?.hand) {
-        const badgeText = profile.hand === 'right' ? '右' : profile.hand === 'left' ? '左' : '両';
-        const badgeColor = profile.hand === 'right' ? '#69737d' : profile.hand === 'left' ? '#2F80ED' : '#8b5fbf';
-        const bx = cx + (guard ? 43 : (p.role === 'support' ? 18 : 25));
-        const by = cy - (guard ? 20 : (p.role === 'support' ? 18 : 25));
-        ctx.fillStyle = badgeColor;
-        ctx.beginPath();
-        ctx.arc(bx, by, 11, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.fillStyle = '#fff';
-        ctx.font = '900 10px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(badgeText, bx, by + .5);
+      if (profile?.hand === 'left' || profile?.hand === 'both') {
+        const markerColor = profile.hand === 'left' ? '#58a6ff' : '#a66de0';
+        const halfW = guard ? 52 : (p.role === 'support' ? 21 : 29);
+        const markerHalfH = guard ? 10 : (p.role === 'support' ? 6 : 8);
+        const drawHandLine = x => {
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 7;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(x, cy - markerHalfH);
+          ctx.lineTo(x, cy + markerHalfH);
+          ctx.stroke();
+          ctx.strokeStyle = markerColor;
+          ctx.lineWidth = 4;
+          ctx.stroke();
+        };
+        drawHandLine(cx - halfW);
+        if (profile.hand === 'both') drawHandLine(cx + halfW);
       }
     });
 
