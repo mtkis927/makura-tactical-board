@@ -1527,9 +1527,10 @@
   let drawingStart = null;
   let currentTacticId = null;
 
-  const MEMBERS_KEY = 'makura-members-v1';
-  const MEMBER_SETS_KEY = 'makura-member-sets-v2';
-  const ACTIVE_MEMBER_SET_KEY = 'makura-active-member-set-v2';
+  const PROD_MEMBERS_KEY = 'makura-members-v1';
+  const MEMBERS_KEY = 'makura-members-v1-preview-v056';
+  const MEMBER_SETS_KEY = 'makura-member-sets-v2-preview-v056';
+  const ACTIVE_MEMBER_SET_KEY = 'makura-active-member-set-v2-preview-v056';
   const enemyPlayerIds = ['enemy-cap','enemy-lib','enemy-a1','enemy-a2','enemy-a3'];
   let memberSets = loadMemberSets();
   let activeMemberSetId = localStorage.getItem(ACTIVE_MEMBER_SET_KEY) || memberSets[0].id;
@@ -1657,7 +1658,7 @@
 
   function loadMembers() {
     try {
-      const raw = localStorage.getItem(MEMBERS_KEY);
+      const raw = localStorage.getItem(MEMBERS_KEY) || localStorage.getItem(PROD_MEMBERS_KEY);
       const parsed = raw ? JSON.parse(raw) : null;
       if (!Array.isArray(parsed)) return blankMembers();
 
@@ -2577,11 +2578,12 @@
   });
 
 
-  const TACTICS_KEY = 'makura-tactics-v1';
+  const PROD_TACTICS_KEY = 'makura-tactics-v1';
+  const TACTICS_KEY = 'makura-tactics-v1-preview-v056';
 
   function getTactics() {
     try {
-      const raw = localStorage.getItem(TACTICS_KEY);
+      const raw = localStorage.getItem(TACTICS_KEY) || localStorage.getItem(PROD_TACTICS_KEY);
       const list = raw ? JSON.parse(raw) : [];
       return Array.isArray(list) ? list : [];
     } catch {
@@ -3482,7 +3484,7 @@
   }
 
   function dataRefFor(user) {
-    return doc(db, 'users', user.uid, 'appData', 'main');
+    return doc(db, 'users', user.uid, 'appData', 'preview-v056');
   }
 
   async function pushNow() {
