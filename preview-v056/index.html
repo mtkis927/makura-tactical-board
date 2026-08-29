@@ -593,7 +593,7 @@
     .lineup-grid,
     .enemy-roster-grid {
       display: grid;
-      gap: 7px;
+      gap: 4px;
     }
 
     .lineup-divider {
@@ -606,12 +606,12 @@
     }
 
     .lineup-slot {
-      min-height: 48px;
+      min-height: 46px;
       display: grid;
-      grid-template-columns: 44px 46px minmax(0, 1fr) 64px;
-      gap: 7px;
+      grid-template-columns: 44px 42px minmax(0, 1fr) 86px;
+      gap: 5px;
       align-items: center;
-      padding: 6px 8px;
+      padding: 3px 5px;
       border: 1px solid #dde2e7;
       border-radius: 11px;
       background: #fbfcfd;
@@ -626,14 +626,14 @@
 
     .lineup-grip {
       width: 44px;
-      height: 44px;
+      height: 100%;
       border: 0;
       border-radius: 8px;
       background: #edf0f3;
       color: #737e88;
       display: grid;
       place-items: center;
-      font-size: 18px;
+      font-size: 26px;
       font-weight: 900;
       cursor: grab;
       touch-action: none;
@@ -649,6 +649,9 @@
     }
 
     .lineup-role {
+      height: 100%;
+      display: grid;
+      place-items: center;
       font-size: 11px;
       font-weight: 900;
       white-space: nowrap;
@@ -661,11 +664,11 @@
       min-width: 0;
       border: 1px solid #cfd6dd;
       border-radius: 9px;
-      min-height: 44px;
-      padding: 9px 10px;
+      min-height: 38px;
+      padding: 7px 9px;
       background: #fff;
       color: var(--text);
-      font-size: 16px;
+      font-size: 13px;
       font-weight: 900;
       text-align: center;
       outline: none;
@@ -679,12 +682,12 @@
     .member-set-tools {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 7px;
-      margin-bottom: 12px;
+      gap: 5px;
+      margin-bottom: 7px;
     }
 
     .member-set-tools select,
-    .member-set-tools input { grid-column: 1 / -1; min-height:44px; font-size:16px; }
+    .member-set-tools input { grid-column: 1 / -1; min-height:38px; font-size:13px; }
 
     .member-set-tools select,
     .member-set-tools input,
@@ -696,8 +699,8 @@
       background: #fff;
       color: var(--text);
       font-weight: 800;
-      min-height:44px;
-      font-size:16px;
+      min-height:38px;
+      font-size:12px;
     }
 
     .enemy-roster-row {
@@ -740,8 +743,8 @@
     body.lineup-reordering,
     body.lineup-reordering * { user-select:none !important; -webkit-user-select:none !important; }
 
-    .member-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:0 0 12px; }
-    .member-tab { border:1px solid #d7dde3; background:#f3f5f7; color:var(--muted); border-radius:10px; min-height:42px; font-size:13px; font-weight:900; }
+    .member-tabs { display:grid; grid-template-columns:1fr 1fr; gap:5px; padding:0 0 7px; }
+    .member-tab { border:1px solid #d7dde3; background:#f3f5f7; color:var(--muted); border-radius:9px; min-height:34px; font-size:12px; font-weight:900; }
     .member-tab.active { background:#eaf3ff; color:#1769aa; border-color:#8ab9ee; }
     .member-panel[hidden] { display:none; }
 
@@ -944,13 +947,13 @@
       padding: 16px;
     }
 
-    .members-modal-card { padding-top:0; font-size:13px; }
+    .members-modal-card { width:min(96vw, 430px); max-height:min(94dvh, 790px); padding:0 12px 12px; font-size:12px; }
     .members-modal-header {
       position:sticky;
       top:0;
       z-index:5;
-      margin:0 -16px 12px;
-      padding:14px 16px 10px;
+      margin:0 -12px 7px;
+      padding:8px 12px;
       display:flex;
       align-items:center;
       justify-content:space-between;
@@ -961,7 +964,7 @@
     }
     .members-modal-header .modal-title { margin:0; }
     .members-header-actions { display:flex; gap:7px; }
-    .members-header-actions button { min-height:40px; font-size:12px; }
+    .members-header-actions button { min-height:36px; font-size:12px; }
 
     .modal-title {
       font-size: 16px;
@@ -1445,11 +1448,11 @@
       <input id="memberSetNameInput" type="text" maxlength="30" placeholder="大会名" aria-label="大会名" />
       <button class="mini-button" id="newMemberSetBtn" type="button">新規</button>
       <button class="mini-button" id="duplicateMemberSetBtn" type="button">複製</button>
-      <button class="mini-button" id="renameMemberSetBtn" type="button">名称</button>
+      <button class="mini-button" id="renameMemberSetBtn" type="button">名称変更</button>
       <button class="danger-mini" id="deleteMemberSetBtn" type="button">削除</button>
     </div>
 
-    <div class="member-note" style="margin:0 0 12px;">
+    <div class="member-note" style="margin:0 0 7px;">
       大会ごとのメンバーセットです。同じセットを使う戦術には名前・番号・利き腕の変更が共通反映されます。表示は2文字までです。
     </div>
 
@@ -1881,7 +1884,7 @@
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'lineup-input';
-      input.placeholder = '名前（2文字まで）';
+      input.placeholder = '名前';
 
       const member = draftMemberBySlot(slotId);
       input.value = member?.name || '';
@@ -1915,7 +1918,7 @@
 
       const hand = document.createElement('select');
       hand.className = 'hand-select';
-      [['','利き腕'],['right','右'],['left','左'],['both','両']].forEach(([value, label]) => {
+      [['','未設定'],['right','右利き'],['left','左利き'],['both','両利き']].forEach(([value, label]) => {
         const option = document.createElement('option');
         option.value = value;
         option.textContent = label;
@@ -1960,7 +1963,7 @@
       input.addEventListener('blur', commit);
       const hand = document.createElement('select');
       hand.className = 'hand-select';
-      [['','利き腕'],['right','右'],['left','左'],['both','両']].forEach(([value, text]) => {
+      [['','未設定'],['right','右利き'],['left','左利き'],['both','両利き']].forEach(([value, text]) => {
         const option = document.createElement('option');
         option.value = value;
         option.textContent = text;
