@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.55</title>
+  <title>まくら投げ戦術ボード Ver.0.56</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -590,9 +590,10 @@
       margin-top: 8px;
     }
 
-    .lineup-grid {
+    .lineup-grid,
+    .enemy-roster-grid {
       display: grid;
-      gap: 7px;
+      gap: 4px;
     }
 
     .lineup-divider {
@@ -605,12 +606,12 @@
     }
 
     .lineup-slot {
-      min-height: 48px;
+      min-height: 46px;
       display: grid;
-      grid-template-columns: 34px 52px 1fr;
-      gap: 7px;
+      grid-template-columns: 44px 42px minmax(0, 1fr) 86px;
+      gap: 5px;
       align-items: center;
-      padding: 6px 8px;
+      padding: 3px 5px;
       border: 1px solid #dde2e7;
       border-radius: 11px;
       background: #fbfcfd;
@@ -624,18 +625,22 @@
     }
 
     .lineup-grip {
-      height: 34px;
+      width: 44px;
+      height: 100%;
       border: 0;
       border-radius: 8px;
       background: #edf0f3;
       color: #737e88;
       display: grid;
       place-items: center;
-      font-size: 18px;
+      font-size: 26px;
       font-weight: 900;
       cursor: grab;
       touch-action: none;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-user-drag: none;
     }
 
     .lineup-grip:active {
@@ -644,9 +649,14 @@
     }
 
     .lineup-role {
-      font-size: 12px;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
       font-weight: 900;
       white-space: nowrap;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .lineup-input {
@@ -654,10 +664,11 @@
       min-width: 0;
       border: 1px solid #cfd6dd;
       border-radius: 9px;
-      padding: 8px 9px;
+      min-height: 38px;
+      padding: 7px 9px;
       background: #fff;
       color: var(--text);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 900;
       text-align: center;
       outline: none;
@@ -667,6 +678,98 @@
       border-color: #7da9df;
       box-shadow: 0 0 0 3px rgba(47,128,237,.12);
     }
+
+    .member-set-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 42px;
+      gap: 5px;
+      margin-bottom: 7px;
+    }
+
+    .member-set-menu {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 5px;
+      margin-bottom: 7px;
+      padding: 7px;
+      border: 1px solid #dce2e7;
+      border-radius: 9px;
+      background: #f7f9fa;
+    }
+    .member-set-menu[hidden] { display:none; }
+
+    .member-set-menu input { grid-column: 1 / -1; min-height:38px; font-size:13px; }
+
+    .member-set-toolbar select,
+    .member-set-menu input,
+    .hand-select {
+      min-width: 0;
+      border: 1px solid #cfd6dd;
+      border-radius: 9px;
+      padding: 8px 7px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 800;
+      min-height:38px;
+      font-size:12px;
+    }
+
+    .member-set-more {
+      border: 1px solid #cfd6dd;
+      border-radius: 9px;
+      background: #f3f5f7;
+      color: var(--text);
+      min-height: 38px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+
+    .enemy-roster-row {
+      display: grid;
+      grid-template-columns: 46px minmax(0, 1fr) 64px;
+      gap: 7px;
+      align-items: center;
+      min-height: 56px;
+      padding: 6px 8px;
+      border: 1px solid #dde2e7;
+      border-radius: 11px;
+      background:#fbfcfd;
+    }
+    .enemy-roster-row label { font-size: 11px; font-weight: 900; }
+
+    .hand-mark {
+      position: absolute;
+      inset: 0;
+      pointer-events:none;
+      border-radius:inherit;
+    }
+    .hand-mark.left::before,
+    .hand-mark.both::before,
+    .hand-mark.both::after {
+      content:"";
+      position:absolute;
+      top:28%;
+      bottom:28%;
+      width:4px;
+      border-radius:3px;
+      background:#58a6ff;
+      box-shadow:0 0 0 1px rgba(255,255,255,.85);
+    }
+    .hand-mark.left::before,
+    .hand-mark.both::before { left:-4px; }
+    .piece.enemy .hand-mark.left::before { left:auto; right:-4px; }
+    .hand-mark.both::before,
+    .hand-mark.both::after { background:#a66de0; }
+    .hand-mark.both::after { right:-4px; }
+
+    body.lineup-reordering,
+    body.lineup-reordering * { user-select:none !important; -webkit-user-select:none !important; }
+
+    .member-tabs { display:grid; grid-template-columns:1fr 1fr; gap:5px; padding:0 0 7px; }
+    .member-tab { border:1px solid #d7dde3; background:#f3f5f7; color:var(--muted); border-radius:9px; min-height:34px; font-size:12px; font-weight:900; }
+    .member-tab.active { background:#eaf3ff; color:#1769aa; border-color:#8ab9ee; }
+    .member-panel[hidden] { display:none; }
 
     .lineup-dragging {
       opacity: .35;
@@ -867,8 +970,27 @@
       padding: 16px;
     }
 
+    .members-modal-card { width:min(96vw, 430px); max-height:min(94dvh, 790px); padding:0 12px 12px; font-size:12px; }
+    .members-modal-header {
+      position:sticky;
+      top:0;
+      z-index:5;
+      margin:0 -12px 7px;
+      padding:8px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background:rgba(255,255,255,.96);
+      border-bottom:1px solid #e4e8ec;
+      backdrop-filter:blur(8px);
+    }
+    .members-modal-header .modal-title { margin:0; }
+    .members-header-actions { display:flex; gap:7px; }
+    .members-header-actions button { min-height:36px; font-size:12px; }
+
     .modal-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 900;
       margin-bottom: 12px;
     }
@@ -897,6 +1019,15 @@
     .tactic-list {
       display: grid;
       gap: 8px;
+    }
+
+    .tactic-group-title {
+      margin-top: 5px;
+      padding: 7px 4px 3px;
+      border-bottom: 1px solid #dfe4e8;
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--text);
     }
 
     .tactic-empty {
@@ -1019,6 +1150,21 @@
       gap: 6px;
       min-width: 0;
       font-size: 12px;
+      font-weight: 900;
+    }
+
+    .current-member-set-name {
+      flex: 0 1 auto;
+      max-width: 42%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #1769aa;
+      background: #eaf3ff;
+      border: 1px solid #b8d4f2;
+      border-radius: 999px;
+      padding: 2px 6px;
+      font-size: 9px;
       font-weight: 900;
     }
 
@@ -1233,7 +1379,7 @@
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.55</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.56</span></div>
       <div class="subtitle">駒をドラッグ。アタッカー・リベロをタップして状態を変更できます。戦術は端末内保存に加え、Googleログイン時はFirebaseで端末間同期できます。</div>
     </div>
 
@@ -1253,6 +1399,7 @@
   <div class="current-tactic-strip" id="currentTacticStrip">
     <div class="current-tactic-info">
       <div class="current-tactic-name">
+        <span class="current-member-set-name" id="boardMemberSetName">現在のメンバー</span>
         <span class="current-tactic-name-text" id="boardTacticName">未保存の配置</span>
         <span class="current-tactic-dirty" id="boardTacticDirty" hidden>編集中</span>
       </div>
@@ -1330,18 +1477,41 @@
 
 
 <div class="modal-backdrop" id="membersModal" hidden>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="membersModalTitle">
-    <div class="modal-title" id="membersModalTitle">セット編成</div>
-
-    <div class="member-note" style="margin:0 0 12px;">
-      各ポジションに名前を直接入力できます。名前は2文字まで。左のグリップをドラッグすると、出場8枠＋控え2枠の名前を入れ替えられます。
+  <div class="modal-card members-modal-card" role="dialog" aria-modal="true" aria-labelledby="membersModalTitle">
+    <div class="members-modal-header">
+      <div class="modal-title" id="membersModalTitle">セット編成</div>
+      <div class="members-header-actions">
+        <button class="mini-button" id="closeMembersBtn" type="button">閉じる</button>
+        <button class="toolbar-button" id="saveMembersBtn" type="button">完了</button>
+      </div>
     </div>
 
-    <div class="lineup-grid" id="lineupGrid"></div>
+    <div class="member-tabs" role="tablist" aria-label="編集するチーム">
+      <button class="member-tab active" id="ownMembersTab" type="button" role="tab" aria-selected="true">自チーム</button>
+      <button class="member-tab" id="enemyMembersTab" type="button" role="tab" aria-selected="false">相手チーム</button>
+    </div>
 
-    <div class="modal-actions" style="gap:8px;">
-      <button class="toolbar-button" id="saveMembersBtn" type="button">反映</button>
-      <button class="toolbar-button" id="closeMembersBtn" type="button">閉じる</button>
+    <div class="member-set-toolbar">
+      <select id="memberSetSelect" aria-label="大会メンバーセット"></select>
+      <button class="member-set-more" id="memberSetMenuBtn" type="button" aria-label="セット操作" aria-expanded="false">•••</button>
+    </div>
+    <div class="member-set-menu" id="memberSetMenu" hidden>
+      <input id="memberSetNameInput" type="text" maxlength="30" placeholder="大会名" aria-label="大会名" />
+      <button class="mini-button" id="newMemberSetBtn" type="button">新規</button>
+      <button class="mini-button" id="duplicateMemberSetBtn" type="button">複製</button>
+      <button class="mini-button" id="renameMemberSetBtn" type="button">名称変更</button>
+      <button class="danger-mini" id="deleteMemberSetBtn" type="button">削除</button>
+    </div>
+
+    <div class="member-note" style="margin:0 0 7px;">
+      大会ごとのメンバーセットです。同じセットを使う戦術には名前・番号・利き腕の変更が共通反映されます。表示は2文字までです。
+    </div>
+
+    <div class="member-panel" id="ownMembersPanel" role="tabpanel">
+      <div class="lineup-grid" id="lineupGrid"></div>
+    </div>
+    <div class="member-panel" id="enemyMembersPanel" role="tabpanel" hidden>
+      <div class="enemy-roster-grid" id="enemyRosterGrid"></div>
     </div>
   </div>
 </div>
@@ -1355,7 +1525,7 @@
       <button class="toolbar-button" id="saveTacticBtn" type="button">新規保存</button>
     </div>
 
-    <textarea id="tacticMemoInput" class="tactic-memo-input" maxlength="300" placeholder="メモ（任意）&#10;例：初手A1は右寄り。残り30秒で大将を前へ。"></textarea>
+    <textarea id="tacticMemoInput" class="tactic-memo-input" maxlength="300" placeholder="メモ（任意）"></textarea>
 
     <div style="display:flex; gap:8px; margin-bottom:14px;">
       <button class="toolbar-button" id="overwriteTacticBtn" type="button" disabled>現在の戦術に上書き</button>
@@ -1435,6 +1605,7 @@
   const closeTacticsBtn = document.getElementById('closeTacticsBtn');
 
   const boardTacticName = document.getElementById('boardTacticName');
+  const boardMemberSetName = document.getElementById('boardMemberSetName');
   const boardTacticDirty = document.getElementById('boardTacticDirty');
   const boardTacticMemo = document.getElementById('boardTacticMemo');
   const quickSaveBtn = document.getElementById('quickSaveBtn');
@@ -1442,8 +1613,21 @@
 
   const membersModal = document.getElementById('membersModal');
   const lineupGrid = document.getElementById('lineupGrid');
+  const enemyRosterGrid = document.getElementById('enemyRosterGrid');
+  const memberSetSelect = document.getElementById('memberSetSelect');
+  const memberSetMenuBtn = document.getElementById('memberSetMenuBtn');
+  const memberSetMenu = document.getElementById('memberSetMenu');
+  const memberSetNameInput = document.getElementById('memberSetNameInput');
+  const newMemberSetBtn = document.getElementById('newMemberSetBtn');
+  const duplicateMemberSetBtn = document.getElementById('duplicateMemberSetBtn');
+  const renameMemberSetBtn = document.getElementById('renameMemberSetBtn');
+  const deleteMemberSetBtn = document.getElementById('deleteMemberSetBtn');
   const saveMembersBtn = document.getElementById('saveMembersBtn');
   const closeMembersBtn = document.getElementById('closeMembersBtn');
+  const ownMembersTab = document.getElementById('ownMembersTab');
+  const enemyMembersTab = document.getElementById('enemyMembersTab');
+  const ownMembersPanel = document.getElementById('ownMembersPanel');
+  const enemyMembersPanel = document.getElementById('enemyMembersPanel');
 
   const toast = document.getElementById('toast');
 
@@ -1460,7 +1644,13 @@
   let currentTacticId = null;
 
   const MEMBERS_KEY = 'makura-members-v1';
-  let members = loadMembers();
+  const MEMBER_SETS_KEY = 'makura-member-sets-v2';
+  const ACTIVE_MEMBER_SET_KEY = 'makura-active-member-set-v2';
+  const enemyLegacyPositionIds = ['enemy-cap','enemy-lib','enemy-a1','enemy-a2','enemy-a3'];
+  let memberSets = loadMemberSets();
+  let activeMemberSetId = localStorage.getItem(ACTIVE_MEMBER_SET_KEY) || memberSets[0].id;
+  if (!memberSets.some(set => set.id === activeMemberSetId)) activeMemberSetId = memberSets[0].id;
+  let members = activeMemberSet().members;
 
   const defaults = [
     // 自チーム
@@ -1482,6 +1672,11 @@
     { id:'enemy-a2', kind:'player', team:'enemy', role:'attacker', number:2, label:'A2', x:.416, y:.068, out:false },
     { id:'enemy-a3', kind:'player', team:'enemy', role:'attacker', number:3, label:'A3', x:.566, y:.068, out:false },
     { id:'enemy-lib', kind:'player', team:'enemy', role:'libero', label:'L', x:.716, y:.068, out:false },
+
+    // 相手チームサポート：自チームと対称に上側右端へ3人
+    { id:'enemy-s1', kind:'player', team:'enemy', role:'support', number:1, label:'S1', x:.840, y:.068, out:false },
+    { id:'enemy-s2', kind:'player', team:'enemy', role:'support', number:2, label:'S2', x:.890, y:.068, out:false },
+    { id:'enemy-s3', kind:'player', team:'enemy', role:'support', number:3, label:'S3', x:.940, y:.068, out:false },
 
     // 枕：各コートの前端から1.8mラインに5個横並び
     { id:'mp1', kind:'pillow', team:'mine', x:.32, y:.694 },
@@ -1506,8 +1701,84 @@
   function blankMembers() {
     return Array.from({length: 10}, (_, i) => ({
       id: `m${i + 1}`,
-      name: ''
+      name: '',
+      hand: ''
     }));
+  }
+
+  function blankEnemies() {
+    return Array.from({length: 10}, (_, i) => ({
+      id: `e${i + 1}`,
+      name: '',
+      hand: ''
+    }));
+  }
+
+  function normalizeHand(value) {
+    return ['right','left','both'].includes(value) ? value : '';
+  }
+
+  function normalizeMembers(list) {
+    const byId = new Map((Array.isArray(list) ? list : []).map(m => [m.id, m]));
+    return blankMembers().map(base => {
+      const saved = byId.get(base.id) || {};
+      return {
+        id: base.id,
+        name: typeof saved.name === 'string' ? Array.from(saved.name.trim()).slice(0, 2).join('') : '',
+        hand: normalizeHand(saved.hand)
+      };
+    });
+  }
+
+  function normalizeEnemies(list) {
+    const byId = new Map((Array.isArray(list) ? list : []).map(m => [m.id, m]));
+    return blankEnemies().map((base, index) => {
+      const legacyId = enemyLegacyPositionIds[index];
+      const saved = byId.get(base.id) || (legacyId ? byId.get(legacyId) : null) || {};
+      return {
+        id: base.id,
+        name: typeof saved.name === 'string' ? Array.from(saved.name.trim()).slice(0, 2).join('') : '',
+        hand: normalizeHand(saved.hand)
+      };
+    });
+  }
+
+  function makeMemberSet(name, source = null) {
+    return {
+      id: `set-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+      name: String(name || '大会メンバー').trim().slice(0, 30) || '大会メンバー',
+      members: normalizeMembers(source?.members),
+      enemies: normalizeEnemies(source?.enemies)
+    };
+  }
+
+  function loadMemberSets() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(MEMBER_SETS_KEY) || 'null');
+      if (Array.isArray(stored) && stored.length) {
+        return stored.map(set => ({
+          id: String(set.id || `set-${Date.now()}`),
+          name: String(set.name || '大会メンバー').slice(0, 30),
+          members: normalizeMembers(set.members),
+          enemies: normalizeEnemies(set.enemies)
+        }));
+      }
+    } catch {}
+
+    const legacy = loadMembers();
+    return [{ id:'set-default', name:'現在のメンバー', members:legacy, enemies:blankEnemies() }];
+  }
+
+  function activeMemberSet() {
+    return memberSets.find(set => set.id === activeMemberSetId) || memberSets[0];
+  }
+
+  function selectMemberSet(id) {
+    const next = memberSets.find(set => set.id === id);
+    if (!next) return;
+    activeMemberSetId = next.id;
+    members = next.members;
+    localStorage.setItem(ACTIVE_MEMBER_SET_KEY, activeMemberSetId);
   }
 
   function loadMembers() {
@@ -1523,7 +1794,8 @@
           id: base.id,
           name: saved && typeof saved.name === 'string'
             ? Array.from(saved.name.trim()).slice(0, 2).join('')
-            : ''
+            : '',
+          hand: normalizeHand(saved?.hand)
         };
       });
     } catch {
@@ -1532,6 +1804,11 @@
   }
 
   function saveMembersToStorage() {
+    const set = activeMemberSet();
+    set.members = normalizeMembers(members);
+    members = set.members;
+    localStorage.setItem(MEMBER_SETS_KEY, JSON.stringify(memberSets));
+    localStorage.setItem(ACTIVE_MEMBER_SET_KEY, activeMemberSetId);
     localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
     window.MakuraCloud?.schedulePush?.();
   }
@@ -1541,9 +1818,22 @@
     return members.find(m => m.id === memberId)?.name || '';
   }
 
+  function playerProfile(p) {
+    if (!p || p.kind !== 'player') return null;
+    if (p.team === 'mine') return members.find(m => m.id === p.memberId) || null;
+    return activeMemberSet().enemies.find(m => m.id === p.memberId)
+      || activeMemberSet().enemies.find(m => m.id === p.id)
+      || null;
+  }
+
   const ownPositionIds = [
     'mine-cap', 'mine-lib', 'mine-a1', 'mine-a2',
     'mine-a3', 'mine-s1', 'mine-s2', 'mine-s3'
+  ];
+
+  const enemyPositionIds = [
+    'enemy-cap', 'enemy-lib', 'enemy-a1', 'enemy-a2',
+    'enemy-a3', 'enemy-s1', 'enemy-s2', 'enemy-s3'
   ];
 
   const ownPositionLabels = {
@@ -1563,6 +1853,12 @@
     'bench1', 'bench2'
   ];
 
+  const enemyLineupSlotIds = [
+    'enemy-cap', 'enemy-lib', 'enemy-a1', 'enemy-a2',
+    'enemy-a3', 'enemy-s1', 'enemy-s2', 'enemy-s3',
+    'enemy-bench1', 'enemy-bench2'
+  ];
+
   const lineupSlotLabels = {
     'mine-cap': '大将',
     'mine-lib': 'L',
@@ -1575,51 +1871,90 @@
     'bench1': '控え1',
     'bench2': '控え2'
   };
+  Object.assign(lineupSlotLabels, {
+    'enemy-cap':'大将', 'enemy-lib':'L', 'enemy-a1':'A1', 'enemy-a2':'A2',
+    'enemy-a3':'A3', 'enemy-s1':'S1', 'enemy-s2':'S2', 'enemy-s3':'S3',
+    'enemy-bench1':'控え1', 'enemy-bench2':'控え2'
+  });
 
   let draftMembers = [];
+  let draftEnemies = [];
   let draftSlots = {};
   let lineupDrag = null;
+  let memberEditorTeam = 'mine';
 
-  function buildCurrentLineupSlots() {
+  function setMemberEditorTeam(team) {
+    memberEditorTeam = team === 'enemy' ? 'enemy' : 'mine';
+    const own = memberEditorTeam === 'mine';
+    ownMembersTab.classList.toggle('active', own);
+    enemyMembersTab.classList.toggle('active', !own);
+    ownMembersTab.setAttribute('aria-selected', String(own));
+    enemyMembersTab.setAttribute('aria-selected', String(!own));
+    ownMembersPanel.hidden = !own;
+    enemyMembersPanel.hidden = own;
+  }
+
+  function buildCurrentLineupSlots(team = 'mine') {
     const result = {};
     const used = new Set();
+    const positionIds = team === 'enemy' ? enemyPositionIds : ownPositionIds;
+    const profiles = team === 'enemy' ? activeMemberSet().enemies : members;
+    const benchIds = team === 'enemy' ? ['enemy-bench1','enemy-bench2'] : ['bench1','bench2'];
 
-    ownPositionIds.forEach(pieceId => {
+    positionIds.forEach(pieceId => {
       const p = pieces.find(piece => piece.id === pieceId);
       const memberId = p?.memberId || '';
 
-      if (memberId && members.some(m => m.id === memberId) && !used.has(memberId)) {
+      if (memberId && profiles.some(m => m.id === memberId) && !used.has(memberId)) {
         result[pieceId] = memberId;
         used.add(memberId);
       }
     });
 
-    const remaining = members.map(m => m.id).filter(id => !used.has(id));
+    const remaining = profiles.map(m => m.id).filter(id => !used.has(id));
 
-    ownPositionIds.forEach(pieceId => {
+    positionIds.forEach(pieceId => {
       if (!result[pieceId]) result[pieceId] = remaining.shift() || '';
     });
 
-    result.bench1 = remaining.shift() || '';
-    result.bench2 = remaining.shift() || '';
+    result[benchIds[0]] = remaining.shift() || '';
+    result[benchIds[1]] = remaining.shift() || '';
 
     return result;
   }
 
   function draftMemberBySlot(slotId) {
     const memberId = draftSlots[slotId];
-    return draftMembers.find(m => m.id === memberId) || null;
+    const profiles = slotId.startsWith('enemy-') ? draftEnemies : draftMembers;
+    return profiles.find(m => m.id === memberId) || null;
   }
 
   function renderLineupModal() {
-    lineupGrid.replaceChildren();
+    memberSetMenu.hidden = true;
+    memberSetMenuBtn.setAttribute('aria-expanded', 'false');
+    memberSetSelect.replaceChildren();
+    memberSets.forEach(set => {
+      const option = document.createElement('option');
+      option.value = set.id;
+      option.textContent = set.name;
+      option.selected = set.id === activeMemberSetId;
+      memberSetSelect.appendChild(option);
+    });
+    deleteMemberSetBtn.disabled = memberSets.length <= 1;
+    memberSetNameInput.value = activeMemberSet().name;
+    renderTeamLineup(lineupGrid, lineupSlotIds, 'bench1');
+    renderTeamLineup(enemyRosterGrid, enemyLineupSlotIds, 'enemy-bench1');
+    updateCurrentTacticBar();
+  }
 
-    lineupSlotIds.forEach(slotId => {
-      if (slotId === 'bench1') {
+  function renderTeamLineup(grid, slotIds, firstBenchId) {
+    grid.replaceChildren();
+    slotIds.forEach(slotId => {
+      if (slotId === firstBenchId) {
         const divider = document.createElement('div');
         divider.className = 'lineup-divider';
         divider.textContent = '控え';
-        lineupGrid.appendChild(divider);
+        grid.appendChild(divider);
       }
 
       const row = document.createElement('div');
@@ -1630,6 +1965,7 @@
       grip.type = 'button';
       grip.className = 'lineup-grip';
       grip.textContent = '≡';
+      grip.draggable = false;
       grip.setAttribute('aria-label', `${lineupSlotLabels[slotId]}をドラッグして入れ替え`);
 
       const role = document.createElement('div');
@@ -1639,7 +1975,7 @@
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'lineup-input';
-      input.placeholder = '名前（2文字まで）';
+      input.placeholder = '名前';
 
       const member = draftMemberBySlot(slotId);
       input.value = member?.name || '';
@@ -1671,19 +2007,109 @@
 
       input.addEventListener('blur', commitName);
 
+      const hand = document.createElement('select');
+      hand.className = 'hand-select';
+      [['','未設定'],['right','右利き'],['left','左利き'],['both','両利き']].forEach(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        hand.appendChild(option);
+      });
+      hand.value = member?.hand || '';
+      hand.addEventListener('change', () => {
+        const current = draftMemberBySlot(slotId);
+        if (current) current.hand = normalizeHand(hand.value);
+      });
+
       bindLineupDrag(grip, slotId);
 
-      row.append(grip, role, input);
-      lineupGrid.appendChild(row);
+      row.append(grip, role, input, hand);
+      grid.appendChild(row);
     });
   }
 
   function openMembersModal() {
     draftMembers = clone(members);
-    draftSlots = buildCurrentLineupSlots();
+    draftEnemies = clone(activeMemberSet().enemies);
+    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
     renderLineupModal();
+    setMemberEditorTeam('mine');
     membersModal.hidden = false;
   }
+
+  ownMembersTab.addEventListener('click', () => setMemberEditorTeam('mine'));
+  enemyMembersTab.addEventListener('click', () => setMemberEditorTeam('enemy'));
+  memberSetMenuBtn.addEventListener('click', () => {
+    const willOpen = memberSetMenu.hidden;
+    memberSetMenu.hidden = !willOpen;
+    memberSetMenuBtn.setAttribute('aria-expanded', String(willOpen));
+    if (willOpen) memberSetNameInput.focus();
+  });
+
+  memberSetSelect.addEventListener('change', () => {
+    selectMemberSet(memberSetSelect.value);
+    draftMembers = clone(members);
+    draftEnemies = clone(activeMemberSet().enemies);
+    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
+    renderLineupModal();
+  });
+
+  newMemberSetBtn.addEventListener('click', () => {
+    const baseName = '新規チーム';
+    let name = baseName;
+    let suffix = 2;
+    while (memberSets.some(item => item.name === name)) name = `${baseName}${suffix++}`;
+    const set = makeMemberSet(name);
+    memberSets.push(set);
+    selectMemberSet(set.id);
+    saveMembersToStorage();
+    draftMembers = clone(members);
+    draftEnemies = clone(activeMemberSet().enemies);
+    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
+    renderLineupModal();
+  });
+
+  duplicateMemberSetBtn.addEventListener('click', () => {
+    const current = activeMemberSet();
+    const typed = memberSetNameInput.value.trim();
+    const name = typed && typed !== current.name ? typed : `${current.name} コピー`;
+    const set = makeMemberSet(name, current);
+    memberSets.push(set);
+    selectMemberSet(set.id);
+    saveMembersToStorage();
+    draftMembers = clone(members);
+    draftEnemies = clone(activeMemberSet().enemies);
+    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
+    renderLineupModal();
+  });
+
+  renameMemberSetBtn.addEventListener('click', () => {
+    const current = activeMemberSet();
+    const name = memberSetNameInput.value.trim();
+    if (!name) {
+      showToast('大会名を入力してください');
+      memberSetNameInput.focus();
+      return;
+    }
+    current.name = name.trim().slice(0, 30);
+    saveMembersToStorage();
+    renderLineupModal();
+  });
+
+  deleteMemberSetBtn.addEventListener('click', () => {
+    if (memberSets.length <= 1) return;
+    const current = activeMemberSet();
+    if (!confirm(`「${current.name}」を削除しますか？\nこのセットを使う戦術は、残っているメンバーセットへ切り替わります。`)) return;
+    memberSets = memberSets.filter(set => set.id !== current.id);
+    selectMemberSet(memberSets[0].id);
+    const tactics = getTactics().map(t => t.memberSetId === current.id ? {...t, memberSetId:activeMemberSetId} : t);
+    setTactics(tactics);
+    saveMembersToStorage();
+    draftMembers = clone(members);
+    draftEnemies = clone(activeMemberSet().enemies);
+    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
+    renderLineupModal();
+  });
 
   function bindLineupDrag(handle, sourceSlotId) {
     handle.addEventListener('pointerdown', e => {
@@ -1712,6 +2138,7 @@
       if (!lineupDrag.moved) {
         lineupDrag.moved = true;
         handle.classList.add('lineup-dragging');
+        document.body.classList.add('lineup-reordering');
 
         const member = draftMemberBySlot(sourceSlotId);
         const ghost = document.createElement('div');
@@ -1775,6 +2202,7 @@
 
     if (lineupDrag?.handle) lineupDrag.handle.classList.remove('lineup-dragging');
     if (lineupDrag?.ghost) lineupDrag.ghost.remove();
+    document.body.classList.remove('lineup-reordering');
 
     lineupDrag = null;
   }
@@ -1790,7 +2218,7 @@
     const side = p.team === 'mine' ? '自チーム' : '相手';
     if (p.kind === 'pillow') return `${side}の枕`;
 
-    const assigned = p.team === 'mine' ? memberName(p.memberId) : '';
+    const assigned = playerProfile(p)?.name || '';
     const suffix = assigned ? ` ${assigned}` : '';
 
     if (p.role === 'captain') return `${side} 大将${suffix}`;
@@ -2021,7 +2449,8 @@
         if (p.role === 'captain') {
           el.classList.add('captain');
         }
-        const assignedName = p.team === 'mine' ? memberName(p.memberId) : '';
+        const profile = playerProfile(p);
+        const assignedName = profile?.name || '';
 
         if (assignedName) {
           el.classList.add('named');
@@ -2039,6 +2468,12 @@
           roleLabel.className = 'piece-role';
           roleLabel.textContent = p.label;
           el.appendChild(roleLabel);
+        }
+        if (profile?.hand === 'left' || profile?.hand === 'both') {
+          const hand = document.createElement('span');
+          hand.className = `hand-mark ${profile.hand}`;
+          hand.setAttribute('aria-label', profile.hand === 'left' ? '左利き' : '両利き');
+          el.appendChild(hand);
         }
         if (p.out) el.classList.add('out');
       }
@@ -2219,7 +2654,7 @@
   function startFormation() {
     const assignments = new Map(
       pieces
-        .filter(p => p.team === 'mine' && p.kind === 'player' && p.memberId)
+        .filter(p => p.kind === 'player' && p.memberId)
         .map(p => [p.id, p.memberId])
     );
 
@@ -2261,9 +2696,19 @@
 
   saveMembersBtn.addEventListener('click', () => {
     members = clone(draftMembers);
+    activeMemberSet().enemies = normalizeEnemies(draftEnemies);
     saveMembersToStorage();
 
     ownPositionIds.forEach(pieceId => {
+      const p = pieces.find(piece => piece.id === pieceId);
+      if (!p) return;
+
+      const memberId = draftSlots[pieceId] || '';
+      if (memberId) p.memberId = memberId;
+      else delete p.memberId;
+    });
+
+    enemyPositionIds.forEach(pieceId => {
       const p = pieces.find(piece => piece.id === pieceId);
       if (!p) return;
 
@@ -2299,10 +2744,9 @@
 
   function currentBoardSnapshot() {
     return {
-      version: 1,
+      version: 2,
       mode,
       showPillows,
-      members: clone(members),
       pieces: clone(pieces),
       drawings: clone(drawings)
     };
@@ -2320,20 +2764,6 @@
 
       return merged;
     });
-
-    if (Array.isArray(data.members)) {
-      const savedMembers = new Map(data.members.map(m => [m.id, m]));
-      members = blankMembers().map(base => {
-        const saved = savedMembers.get(base.id);
-        return {
-          id: base.id,
-          name: saved && typeof saved.name === 'string'
-            ? Array.from(saved.name.trim()).slice(0, 2).join('')
-            : ''
-        };
-      });
-      saveMembersToStorage();
-    }
 
     mode = data.mode === 'final30' ? 'final30' : 'normal';
     showPillows = data.showPillows !== false;
@@ -2363,6 +2793,7 @@
 
   function updateCurrentTacticBar() {
     if (!boardTacticName || !quickSaveBtn) return;
+    boardMemberSetName.textContent = activeMemberSet().name || 'メンバーセット';
 
     const current = currentTacticRecord();
 
@@ -2417,6 +2848,7 @@
     const updated = {
       ...tactics[index],
       updatedAt: Date.now(),
+      memberSetId: activeMemberSetId,
       board: currentBoardSnapshot()
     };
 
@@ -2468,7 +2900,11 @@
   }
 
   function renderTacticList() {
-    const tactics = getTactics().sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    const setOrder = new Map(memberSets.map((set, index) => [set.id, set.id === activeMemberSetId ? -1 : index]));
+    const tactics = getTactics().sort((a,b) => {
+      const groupDiff = (setOrder.get(a.memberSetId) ?? 9999) - (setOrder.get(b.memberSetId) ?? 9999);
+      return groupDiff || (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
     tacticList.replaceChildren();
 
     if (!tactics.length) {
@@ -2479,7 +2915,16 @@
       return;
     }
 
+    let currentGroup = null;
     tactics.forEach(tactic => {
+      const groupId = tactic.memberSetId || 'legacy';
+      if (groupId !== currentGroup) {
+        currentGroup = groupId;
+        const heading = document.createElement('div');
+        heading.className = 'tactic-group-title';
+        heading.textContent = memberSets.find(set => set.id === groupId)?.name || '現在のメンバー';
+        tacticList.appendChild(heading);
+      }
       const item = document.createElement('div');
       item.className = 'tactic-item';
 
@@ -2507,6 +2952,9 @@
       load.textContent = '開く';
       load.addEventListener('click', () => {
         try {
+          if (tactic.memberSetId && memberSets.some(set => set.id === tactic.memberSetId)) {
+            selectMemberSet(tactic.memberSetId);
+          }
           applyBoardSnapshot(tactic.board);
           currentTacticId = tactic.id;
           updateOverwriteUI();
@@ -2585,6 +3033,7 @@
       memo: tacticMemoInput.value.trim().slice(0, 300),
       createdAt: now,
       updatedAt: now,
+      memberSetId: activeMemberSetId,
       board: currentBoardSnapshot()
     };
 
@@ -2612,6 +3061,10 @@
 
   function currentScreenshotMemo() {
     return currentTacticRecord()?.memo?.trim() || '';
+  }
+
+  function currentScreenshotSetName() {
+    return activeMemberSet().name || 'メンバーセット';
   }
 
   function canvasRoundRect(ctx, x, y, w, h, r) {
@@ -2677,8 +3130,9 @@
     const width = 1080;
     const boardHeight = Math.round(width / 0.82);
     const title = currentScreenshotTitle();
+    const setName = currentScreenshotSetName();
     const memo = currentScreenshotMemo();
-    const headerHeight = memo ? 152 : 104;
+    const headerHeight = memo ? 180 : 132;
     const totalHeight = headerHeight + boardHeight + 24;
 
     const canvas = document.createElement('canvas');
@@ -2701,16 +3155,21 @@
     ctx.lineTo(width, headerHeight - 1);
     ctx.stroke();
 
+    ctx.fillStyle = '#1769aa';
+    ctx.font = '800 18px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText(setName, 34, 22);
+
     ctx.fillStyle = '#27313a';
     ctx.font = '900 30px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
     ctx.textBaseline = 'top';
-    ctx.fillText(title, 34, 24);
+    ctx.fillText(title, 34, 52);
 
     if (memo) {
       ctx.fillStyle = '#65717b';
       ctx.font = '500 18px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
       const lines = wrapCanvasText(ctx, memo, width - 68, 2);
-      lines.forEach((line, i) => ctx.fillText(line, 34, 70 + i * 28));
+      lines.forEach((line, i) => ctx.fillText(line, 34, 98 + i * 28));
     }
 
     // Board frame
@@ -2851,7 +3310,8 @@
         return;
       }
 
-      const assignedName = p.team === 'mine' ? memberName(p.memberId) : '';
+      const profile = playerProfile(p);
+      const assignedName = profile?.name || '';
       const fill = p.out
         ? '#7c858d'
         : p.role === 'support'
@@ -2863,8 +3323,8 @@
       const guard = isLiberoInGuardZone(p);
 
       if (guard) {
-        const gw = 104;
-        const gh = 48;
+        const gw = 128;
+        const gh = 60;
         ctx.fillStyle = fill;
         ctx.strokeStyle = 'rgba(255,255,255,.96)';
         ctx.lineWidth = 3;
@@ -2872,7 +3332,7 @@
         ctx.fill();
         ctx.stroke();
       } else {
-        const diameter = p.role === 'support' ? 42 : 58;
+        const diameter = p.role === 'support' ? 52 : 72;
         ctx.fillStyle = fill;
         ctx.strokeStyle = p.role === 'captain'
           ? '#FFD54F'
@@ -2892,21 +3352,41 @@
       const roleLabel = assignedName ? p.label : '';
 
       const mainSize = p.role === 'support'
-        ? (Array.from(mainLabel).length > 1 ? 17 : 20)
+        ? (Array.from(mainLabel).length > 1 ? 20 : 24)
         : guard
-          ? (Array.from(mainLabel).length > 1 ? 22 : 24)
-          : (Array.from(mainLabel).length > 1 ? 23 : 26);
+          ? (Array.from(mainLabel).length > 1 ? 27 : 30)
+          : (Array.from(mainLabel).length > 1 ? 28 : 32);
 
       ctx.font = `900 ${mainSize}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
 
       if (roleLabel) {
-        ctx.fillText(mainLabel, cx, cy - (p.role === 'support' ? 4 : 5));
+        ctx.fillText(mainLabel, cx, cy - (p.role === 'support' ? 5 : 7));
         ctx.globalAlpha = .84;
-        ctx.font = `800 ${p.role === 'support' ? 10 : 12}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
-        ctx.fillText(roleLabel, cx, cy + (p.role === 'support' ? 11 : 14));
+        ctx.font = `800 ${p.role === 'support' ? 12 : 15}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
+        ctx.fillText(roleLabel, cx, cy + (p.role === 'support' ? 14 : 18));
         ctx.globalAlpha = 1;
       } else {
         ctx.fillText(mainLabel, cx, cy);
+      }
+
+      if (profile?.hand === 'left' || profile?.hand === 'both') {
+        const markerColor = profile.hand === 'left' ? '#58a6ff' : '#a66de0';
+        const halfW = guard ? 64 : (p.role === 'support' ? 26 : 36);
+        const markerHalfH = guard ? 12 : (p.role === 'support' ? 8 : 10);
+        const drawHandLine = x => {
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 7;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(x, cy - markerHalfH);
+          ctx.lineTo(x, cy + markerHalfH);
+          ctx.stroke();
+          ctx.strokeStyle = markerColor;
+          ctx.lineWidth = 4;
+          ctx.stroke();
+        };
+        drawHandLine(profile.hand === 'left' && p.team === 'enemy' ? cx + halfW : cx - halfW);
+        if (profile.hand === 'both') drawHandLine(cx + halfW);
       }
     });
 
@@ -2923,6 +3403,16 @@
     }
 
     return new File([bytes], filename, { type: 'image/png' });
+  }
+
+  function downloadTacticPng(dataUrl, filename) {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast('戦術画像を保存しました');
   }
 
   screenshotBtn.addEventListener('click', () => {
@@ -2949,17 +3439,11 @@
         }).catch(error => {
           if (error?.name !== 'AbortError') {
             console.error('Share failed:', error);
-            showToast('共有できませんでした');
+            downloadTacticPng(dataUrl, file.name);
           }
         });
       } else {
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        showToast('戦術画像を保存しました');
+        downloadTacticPng(dataUrl, file.name);
       }
     } catch (error) {
       console.error('Screenshot export failed:', error);
@@ -2972,7 +3456,13 @@
 
 
   function exportCloudData() {
-    return { schemaVersion: 1, tactics: clone(getTactics()), members: clone(members) };
+    return {
+      schemaVersion: 2,
+      tactics: clone(getTactics()),
+      memberSets: clone(memberSets),
+      activeMemberSetId,
+      members: clone(members)
+    };
   }
 
   function importCloudData(data) {
@@ -2982,7 +3472,17 @@
       localStorage.setItem(TACTICS_KEY, JSON.stringify(data.tactics));
     }
 
-    if (Array.isArray(data.members)) {
+    if (Array.isArray(data.memberSets) && data.memberSets.length) {
+      memberSets = data.memberSets.map(set => ({
+        id: String(set.id || `set-${Date.now()}`),
+        name: String(set.name || '大会メンバー').slice(0, 30),
+        members: normalizeMembers(set.members),
+        enemies: normalizeEnemies(set.enemies)
+      }));
+      const requestedId = typeof data.activeMemberSetId === 'string' ? data.activeMemberSetId : memberSets[0].id;
+      selectMemberSet(memberSets.some(set => set.id === requestedId) ? requestedId : memberSets[0].id);
+      localStorage.setItem(MEMBER_SETS_KEY, JSON.stringify(memberSets));
+    } else if (Array.isArray(data.members)) {
       const savedMembers = new Map(data.members.map(m => [m.id, m]));
       members = blankMembers().map(base => {
         const saved = savedMembers.get(base.id);
@@ -2990,9 +3490,12 @@
           id: base.id,
           name: saved && typeof saved.name === 'string'
             ? Array.from(saved.name.trim()).slice(0, 2).join('')
-            : ''
+            : '',
+          hand: normalizeHand(saved?.hand)
         };
       });
+      activeMemberSet().members = members;
+      localStorage.setItem(MEMBER_SETS_KEY, JSON.stringify(memberSets));
       localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
     }
 
