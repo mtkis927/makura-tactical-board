@@ -3126,6 +3126,33 @@
     ctx.fill();
   }
 
+  function screenshotPieceMetrics(p, canvasWidth) {
+    const stageRect = stage.getBoundingClientRect();
+    const pieceEl = Array.from(stage.querySelectorAll('.piece'))
+      .find(el => el.dataset.id === p.id);
+
+    if (!pieceEl || !stageRect.width) return null;
+
+    const pieceRect = pieceEl.getBoundingClientRect();
+    const scale = canvasWidth / stageRect.width;
+    const labelEl = pieceEl.querySelector('.piece-label');
+    const roleEl = pieceEl.querySelector('.piece-role');
+    const pieceStyle = getComputedStyle(pieceEl);
+
+    return {
+      width: pieceRect.width * scale,
+      height: pieceRect.height * scale,
+      borderWidth: parseFloat(pieceStyle.borderTopWidth || '0') * scale,
+      borderRadius: parseFloat(pieceStyle.borderTopLeftRadius || '0') * scale,
+      mainFontSize: labelEl
+        ? parseFloat(getComputedStyle(labelEl).fontSize || '0') * scale
+        : parseFloat(pieceStyle.fontSize || '0') * scale,
+      roleFontSize: roleEl
+        ? parseFloat(getComputedStyle(roleEl).fontSize || '0') * scale
+        : 0
+    };
+  }
+
   function createTacticImageCanvas() {
     const width = 1080;
     const boardHeight = Math.round(width / 0.82);
@@ -3321,23 +3348,24 @@
             : '#3F4852';
 
       const guard = isLiberoInGuardZone(p);
+      const screenMetrics = screenshotPieceMetrics(p, W);
 
       if (guard) {
-        const gw = 128;
-        const gh = 60;
+        const gw = screenMetrics?.width || 128;
+        const gh = screenMetrics?.height || 60;
         ctx.fillStyle = fill;
         ctx.strokeStyle = 'rgba(255,255,255,.96)';
-        ctx.lineWidth = 3;
-        canvasRoundRect(ctx, cx - gw/2, cy - gh/2, gw, gh, 14);
+        ctx.lineWidth = screenMetrics?.borderWidth || 3;
+        canvasRoundRect(ctx, cx - gw/2, cy - gh/2, gw, gh, screenMetrics?.borderRadius || 14);
         ctx.fill();
         ctx.stroke();
       } else {
-        const diameter = p.role === 'support' ? 52 : 72;
+        const diameter = screenMetrics?.width || (p.role === 'support' ? 52 : 72);
         ctx.fillStyle = fill;
         ctx.strokeStyle = p.role === 'captain'
           ? '#FFD54F'
           : 'rgba(255,255,255,.95)';
-        ctx.lineWidth = p.role === 'captain' ? 6 : 3;
+        ctx.lineWidth = screenMetrics?.borderWidth || (p.role === 'captain' ? 6 : 3);
         ctx.beginPath();
         ctx.arc(cx, cy, diameter / 2, 0, Math.PI * 2);
         ctx.fill();
@@ -3352,17 +3380,18 @@
       const roleLabel = assignedName ? p.label : '';
 
       const mainSize = p.role === 'support'
-        ? (Array.from(mainLabel).length > 1 ? 20 : 24)
+        ? (screenMetrics?.mainFontSize || (Array.from(mainLabel).length > 1 ? 20 : 24))
         : guard
-          ? (Array.from(mainLabel).length > 1 ? 27 : 30)
-          : (Array.from(mainLabel).length > 1 ? 28 : 32);
+          ? (screenMetrics?.mainFontSize || (Array.from(mainLabel).length > 1 ? 27 : 30))
+          : (screenMetrics?.mainFontSize || (Array.from(mainLabel).length > 1 ? 28 : 32));
 
       ctx.font = `900 ${mainSize}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
 
       if (roleLabel) {
         ctx.fillText(mainLabel, cx, cy - (p.role === 'support' ? 5 : 7));
         ctx.globalAlpha = .84;
-        ctx.font = `800 ${p.role === 'support' ? 12 : 15}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
+        const roleSize = screenMetrics?.roleFontSize || (p.role === 'support' ? 12 : 15);
+        ctx.font = `800 ${roleSize}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
         ctx.fillText(roleLabel, cx, cy + (p.role === 'support' ? 14 : 18));
         ctx.globalAlpha = 1;
       } else {
@@ -3371,8 +3400,8 @@
 
       if (profile?.hand === 'left' || profile?.hand === 'both') {
         const markerColor = profile.hand === 'left' ? '#58a6ff' : '#a66de0';
-        const halfW = guard ? 64 : (p.role === 'support' ? 26 : 36);
-        const markerHalfH = guard ? 12 : (p.role === 'support' ? 8 : 10);
+        const halfW = screenMetrics ? screenMetrics.width / 2 : (guard ? 64 : (p.role === 'support' ? 26 : 36));
+        const markerHalfH = screenMetrics ? screenMetrics.height * .22 : (guard ? 12 : (p.role === 'support' ? 8 : 10));
         const drawHandLine = x => {
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 7;
