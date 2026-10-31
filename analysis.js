@@ -551,7 +551,16 @@
   }
   function presetList() {
     const team = api.memberEditorTeam;
-    $('teamPresetList').replaceChildren(new Option('編成を呼び出す', ''),
+    const own = team === 'mine';
+    $('teamPresetLabel').textContent = own ? '自チームの大会編成' : '相手の固定チーム';
+    $('teamPresetName').placeholder = own ? '例：26年柏' : '例：まくモン';
+    $('saveTeamPreset').textContent = own ? '大会編成として保存' : '固定チームとして保存';
+    $('loadTeamPreset').textContent = own ? 'この大会編成を適用' : 'この相手チームを適用';
+    $('teamPresetHint').textContent = own
+      ? '大会ごとに変わる自チームを保存します。'
+      : '基本メンバーが同じ相手チームを保存し、大会をまたいで呼び出します。';
+    $('teamPresetList').setAttribute('aria-label', own ? '自チームの大会編成' : '相手の固定チーム');
+    $('teamPresetList').replaceChildren(new Option(own ? '自チームの大会編成を選択' : '相手の固定チームを選択', ''),
       ...presets().filter(preset => preset.team === team).map(preset => new Option(preset.name, preset.id)));
   }
   for (const id of ['membersBtn', 'ownMembersTab', 'enemyMembersTab']) $(id).addEventListener('click', presetList);
@@ -560,10 +569,16 @@
       const team = api.memberEditorTeam, name = $('teamPresetName').value.trim();
       if (!name) { api.showToast('チーム・セット名を入力してください'); return; }
       const list = presets();
-      list.push({ id: crypto.randomUUID(), name, team,
-        profiles: copy(team === 'mine' ? api.draftMembers : api.draftEnemies), slots: copy(api.draftSlots) });
+      const existing = list.find(item => item.team === team && item.name === name);
+      if (existing && !confirm(`「${name}」を現在の編成で更新しますか？`)) return;
+      const saved = existing || { id: crypto.randomUUID(), name, team };
+      saved.profiles = copy(team === 'mine' ? api.draftMembers : api.draftEnemies);
+      saved.slots = copy(api.draftSlots);
+      if (!existing) list.push(saved);
       localStorage.setItem('makura-team-presets-v1', JSON.stringify(list));
-      presetList(); api.showToast('チーム別の編成を保存しました');
+      presetList(); $('teamPresetList').value = saved.id; $('teamPresetName').value = '';
+      window.MakuraCloud?.schedulePush?.();
+      api.showToast(team === 'mine' ? '自チームの大会編成を保存しました' : '相手の固定チームを保存しました');
     } catch { api.showToast('編成を保存できませんでした'); }
   };
   $('loadTeamPreset').onclick = () => {
@@ -573,7 +588,8 @@
     else api.draftEnemies = copy(preset.profiles);
     const slots = preset.team === 'mine' ? api.lineupSlotIds : api.enemyLineupSlotIds;
     for (const id of slots) api.draftSlots[id] = preset.slots[id] || '';
-    api.renderLineupModal(); api.showToast('編成を適用しました。完了で確定します');
+    api.renderLineupModal(); presetList();
+    api.showToast(preset.team === 'mine' ? '大会編成を適用しました。完了で確定します' : '相手チームを適用しました。完了で確定します');
   };
   refresh().catch(() => status('端末内ストレージが利用できません。プライベートブラウズ等の設定を確認してください。'));
 })();

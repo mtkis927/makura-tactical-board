@@ -1584,12 +1584,13 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       </div>
     </div>
 
-    <div class="analysis-controls"><label>編成を個別保存 <input id="teamPresetName" placeholder="チーム・セット名"></label><button id="saveTeamPreset" type="button">表示中のチームを保存</button><select id="teamPresetList" aria-label="自チーム・相手チーム別の編成"><option value="">編成を呼び出す</option></select><button id="loadTeamPreset" type="button">表示中のチームへ適用</button><span>名簿・出場8枠・控え2枠をチーム別に管理</span></div>
+    <div class="analysis-controls team-library-controls"><label><span id="teamPresetLabel">自チームの大会編成</span> <input id="teamPresetName" placeholder="例：26年柏"></label><button id="saveTeamPreset" type="button">大会編成として保存</button><select id="teamPresetList" aria-label="自チーム・相手チーム別の編成"><option value="">自チームの大会編成を選択</option></select><button id="loadTeamPreset" type="button">この大会編成を適用</button><span id="teamPresetHint">大会ごとに変わる自チームを保存します。</span></div>
 <div class="member-tabs" role="tablist" aria-label="編集するチーム">
       <button class="member-tab active" id="ownMembersTab" type="button" role="tab" aria-selected="true">自チーム</button>
       <button class="member-tab" id="enemyMembersTab" type="button" role="tab" aria-selected="false">相手チーム</button>
     </div>
 
+    <div id="ownMemberSetControls">
     <div class="member-set-toolbar">
       <select id="memberSetSelect" aria-label="大会メンバーセット"></select>
       <button class="member-set-more" id="memberSetMenuBtn" type="button" aria-label="セット操作" aria-expanded="false">•••</button>
@@ -1603,7 +1604,8 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     </div>
 
     <div class="member-note" style="margin:0 0 7px;">
-      大会ごとのメンバーセットです。同じセットを使う戦術には名前・番号・利き腕の変更が共通反映されます。表示は2文字までです。
+      自チームの大会編成です。同じ大会編成を使う戦術には名前・番号・利き腕の変更が共通反映されます。表示は2文字までです。
+    </div>
     </div>
 
     <div class="member-panel" id="ownMembersPanel" role="tabpanel">
@@ -1714,6 +1716,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   const lineupGrid = document.getElementById('lineupGrid');
   const enemyRosterGrid = document.getElementById('enemyRosterGrid');
   const memberSetSelect = document.getElementById('memberSetSelect');
+  const ownMemberSetControls = document.getElementById('ownMemberSetControls');
   const memberSetMenuBtn = document.getElementById('memberSetMenuBtn');
   const memberSetMenu = document.getElementById('memberSetMenu');
   const memberSetNameInput = document.getElementById('memberSetNameInput');
@@ -1994,6 +1997,11 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     enemyMembersTab.setAttribute('aria-selected', String(!own));
     ownMembersPanel.hidden = !own;
     enemyMembersPanel.hidden = own;
+    ownMemberSetControls.hidden = !own;
+    if (!own) {
+      memberSetMenu.hidden = true;
+      memberSetMenuBtn.setAttribute('aria-expanded', 'false');
+    }
   }
 
   function buildCurrentLineupSlots(team = 'mine') {
@@ -3615,12 +3623,18 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 
 
   function exportCloudData() {
+    let teamPresets = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem('makura-team-presets-v1') || '[]');
+      if (Array.isArray(parsed)) teamPresets = parsed;
+    } catch {}
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       tactics: clone(getTactics()),
       memberSets: clone(memberSets),
       activeMemberSetId,
-      members: clone(members)
+      members: clone(members),
+      teamPresets: clone(teamPresets)
     };
   }
 
@@ -3629,6 +3643,17 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 
     if (Array.isArray(data.tactics)) {
       localStorage.setItem(TACTICS_KEY, JSON.stringify(data.tactics));
+    }
+
+    if (Array.isArray(data.teamPresets)) {
+      const safePresets = data.teamPresets.filter(item => item && (item.team === 'mine' || item.team === 'enemy')).map(item => ({
+        id: String(item.id || `preset-${Date.now()}-${Math.random().toString(36).slice(2,7)}`),
+        name: String(item.name || '編成').slice(0, 30),
+        team: item.team,
+        profiles: item.team === 'mine' ? normalizeMembers(item.profiles) : normalizeEnemies(item.profiles),
+        slots: item.slots && typeof item.slots === 'object' ? item.slots : {}
+      }));
+      localStorage.setItem('makura-team-presets-v1', JSON.stringify(safePresets));
     }
 
     if (Array.isArray(data.memberSets) && data.memberSets.length) {
@@ -3938,7 +3963,11 @@ currentBoardSnapshot,activeMemberSet,selectMemberSet,applyBoardSnapshot,renderLi
       await signInWithPopup(auth, provider);
     } catch (error) {
       console.error('Google sign in failed:', error);
-      setCloudStatus('ログインできませんでした', 'ERROR', `${error.code || ''} ${error.message || ''}`.trim(), false);
+      if (error?.code === 'auth/unauthorized-domain' && location.hostname === '127.0.0.1') {
+        setCloudStatus('ローカルURLを変更してください', 'URL', `Googleログインを使う確認版は http://localhost:${location.port || '8879'}/ で開いてください。`, false);
+      } else {
+        setCloudStatus('ログインできませんでした', 'ERROR', `${error.code || ''} ${error.message || ''}`.trim(), false);
+      }
     }
   });
 

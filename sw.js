@@ -1,4 +1,4 @@
-const CACHE_NAME = 'makura-tactical-board-v057';
+const CACHE_NAME = 'makura-tactical-board-v057-team-library';
 const APP_SHELL = [
   './',
   './index.html',
