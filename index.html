@@ -1458,12 +1458,12 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 
 </head>
 
-<body>
+<body data-view="board">
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
       <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.57</span></div>
-      <select id="analysisView" class="title-view-select" aria-label="表示モード"><option value="board">戦術ボード</option><option value="split" selected>戦術＋動画</option><option value="video">動画</option></select>
+      <select id="analysisView" class="title-view-select" aria-label="表示モード"><option value="board" selected>戦術ボード</option><option value="split">戦術＋動画</option><option value="video">動画</option></select>
     </div>
 
     <div class="toolbar">
@@ -1494,7 +1494,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     </div>
   </div>
 
-<div class="analysis-layout" id="analysisLayout" data-view="split">
+<div class="analysis-layout" id="analysisLayout" data-view="board">
 <div class="orientation-guide" id="orientationGuide" role="status"><span aria-hidden="true">↻</span><div id="orientationText">横向きにしてください</div></div>
 <section class="video-panel" aria-label="動画分析">
 <div class="video-library-bar"><label class="import-button">＋ 動画<input id="videoFile" aria-label="動画を開く" type="file" accept="video/*,.mp4,.mov,.m4v"></label><select id="videoLibrary" aria-label="端末内の動画"><option value="">動画を選択</option></select></div>
