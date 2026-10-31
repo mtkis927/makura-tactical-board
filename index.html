@@ -1202,6 +1202,34 @@
       align-items: center;
     }
 
+    .enemy-team-switcher {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .enemy-team-switcher label {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .enemy-team-switcher select {
+      width: min(180px, 26vw);
+      min-height: 34px;
+      padding: 5px 26px 5px 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .enemy-team-switcher button {
+      min-height: 34px;
+      padding: 5px 8px;
+      font-size: 11px;
+    }
+
     .quick-save-button {
       min-width: 62px;
     }
@@ -1263,6 +1291,22 @@
         min-width: 56px;
         padding-left: 8px;
         padding-right: 8px;
+      }
+
+      .current-tactic-strip {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .current-tactic-actions {
+        justify-content: space-between;
+      }
+
+      .enemy-team-switcher {
+        flex: 1 1 auto;
+      }
+
+      .enemy-team-switcher select {
+        width: min(46vw, 190px);
       }
     }
 
@@ -1489,6 +1533,11 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       <div class="current-tactic-memo" id="boardTacticMemo">戦術を保存すると名前とメモがここに表示されます。</div>
     </div>
     <div class="current-tactic-actions">
+      <div class="enemy-team-switcher">
+        <label for="boardEnemyTeamSelect">相手</label>
+        <select id="boardEnemyTeamSelect" aria-label="対戦相手チーム"><option value="">相手チームを選択</option></select>
+        <button class="toolbar-button" id="editEnemyTeamBtn" type="button">編集</button>
+      </div>
       <button class="toolbar-button quick-save-button" id="quickSaveBtn" type="button">新規保存</button>
       <button class="toolbar-button camera-button" id="screenshotBtn" type="button" aria-label="戦術画像を作成" title="戦術画像を作成">📷</button>
     </div>
@@ -1584,7 +1633,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       </div>
     </div>
 
-    <div class="analysis-controls team-library-controls"><label><span id="teamPresetLabel">自チームの大会編成</span> <input id="teamPresetName" placeholder="例：26年柏"></label><button id="saveTeamPreset" type="button">大会編成として保存</button><select id="teamPresetList" aria-label="自チーム・相手チーム別の編成"><option value="">自チームの大会編成を選択</option></select><button id="loadTeamPreset" type="button">この大会編成を適用</button><span id="teamPresetHint">大会ごとに変わる自チームを保存します。</span></div>
+    <div class="analysis-controls team-library-controls"><label><span id="teamPresetLabel">自チームの大会編成</span> <input id="teamPresetName" placeholder="大会編成名"></label><button id="saveTeamPreset" type="button">大会編成として保存</button><select id="teamPresetList" aria-label="自チーム・相手チーム別の編成"><option value="">自チームの大会編成を選択</option></select><button id="loadTeamPreset" type="button">この大会編成を適用</button><span id="teamPresetHint">大会ごとに変わる自チームを保存します。</span></div>
 <div class="member-tabs" role="tablist" aria-label="編集するチーム">
       <button class="member-tab active" id="ownMembersTab" type="button" role="tab" aria-selected="true">自チーム</button>
       <button class="member-tab" id="enemyMembersTab" type="button" role="tab" aria-selected="false">相手チーム</button>

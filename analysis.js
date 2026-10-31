@@ -549,11 +549,22 @@
       return Array.isArray(data) ? data : [];
     } catch { return []; }
   }
+  const ACTIVE_ENEMY_PRESET_KEY = 'makura-active-enemy-preset-v1';
+  function renderBoardEnemyTeams(preferredId = localStorage.getItem(ACTIVE_ENEMY_PRESET_KEY) || '') {
+    const select = $('boardEnemyTeamSelect');
+    if (!select) return;
+    const enemyPresets = presets().filter(preset => preset.team === 'enemy');
+    select.replaceChildren(
+      new Option(enemyPresets.length ? '相手チームを選択' : '固定チーム未登録', ''),
+      ...enemyPresets.map(preset => new Option(preset.name, preset.id))
+    );
+    select.value = enemyPresets.some(preset => preset.id === preferredId) ? preferredId : '';
+  }
   function presetList() {
     const team = api.memberEditorTeam;
     const own = team === 'mine';
     $('teamPresetLabel').textContent = own ? '自チームの大会編成' : '相手の固定チーム';
-    $('teamPresetName').placeholder = own ? '例：26年柏' : '例：まくモン';
+    $('teamPresetName').placeholder = own ? '大会編成名' : '相手チーム名';
     $('saveTeamPreset').textContent = own ? '大会編成として保存' : '固定チームとして保存';
     $('loadTeamPreset').textContent = own ? 'この大会編成を適用' : 'この相手チームを適用';
     $('teamPresetHint').textContent = own
@@ -562,6 +573,7 @@
     $('teamPresetList').setAttribute('aria-label', own ? '自チームの大会編成' : '相手の固定チーム');
     $('teamPresetList').replaceChildren(new Option(own ? '自チームの大会編成を選択' : '相手の固定チームを選択', ''),
       ...presets().filter(preset => preset.team === team).map(preset => new Option(preset.name, preset.id)));
+    renderBoardEnemyTeams();
   }
   for (const id of ['membersBtn', 'ownMembersTab', 'enemyMembersTab']) $(id).addEventListener('click', presetList);
   $('saveTeamPreset').onclick = () => {
@@ -589,7 +601,30 @@
     const slots = preset.team === 'mine' ? api.lineupSlotIds : api.enemyLineupSlotIds;
     for (const id of slots) api.draftSlots[id] = preset.slots[id] || '';
     api.renderLineupModal(); presetList();
+    if (preset.team === 'enemy') {
+      localStorage.setItem(ACTIVE_ENEMY_PRESET_KEY, preset.id);
+      renderBoardEnemyTeams(preset.id);
+    }
     api.showToast(preset.team === 'mine' ? '大会編成を適用しました。完了で確定します' : '相手チームを適用しました。完了で確定します');
   };
+  $('boardEnemyTeamSelect').onchange = event => {
+    const preset = presets().find(item => item.id === event.target.value && item.team === 'enemy');
+    if (!preset) return;
+    $('membersBtn').click();
+    $('enemyMembersTab').click();
+    api.draftEnemies = copy(preset.profiles);
+    for (const id of api.enemyLineupSlotIds) api.draftSlots[id] = preset.slots[id] || '';
+    api.renderLineupModal();
+    $('saveMembersBtn').click();
+    localStorage.setItem(ACTIVE_ENEMY_PRESET_KEY, preset.id);
+    renderBoardEnemyTeams(preset.id);
+    window.MakuraCloud?.schedulePush?.();
+    api.showToast(`相手チームを「${preset.name}」へ切り替えました`);
+  };
+  $('editEnemyTeamBtn').onclick = () => {
+    $('membersBtn').click();
+    $('enemyMembersTab').click();
+  };
+  renderBoardEnemyTeams();
   refresh().catch(() => status('端末内ストレージが利用できません。プライベートブラウズ等の設定を確認してください。'));
 })();
