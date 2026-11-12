@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.58</title>
+  <title>まくら投げ戦術ボード Ver.0.58.1</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -1529,7 +1529,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.58</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.58.1</span></div>
       <select id="analysisView" class="title-view-select" aria-label="表示モード"><option value="board" selected>戦術ボード</option><option value="split">戦術＋動画</option><option value="video">動画</option></select>
     </div>
 
@@ -1558,7 +1558,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     <div class="current-tactic-actions">
       <div class="enemy-team-switcher">
         <label for="boardEnemyTeamSelect">相手</label>
-        <select id="boardEnemyTeamSelect" aria-label="対戦相手チーム"><option value="">相手チームを選択</option></select>
+        <select id="boardEnemyTeamSelect" aria-label="対戦相手チーム"><option value="">フリー（未指定）</option></select>
         <button class="toolbar-button" id="editEnemyTeamBtn" type="button">編集</button>
       </div>
       <button class="toolbar-button quick-save-button" id="quickSaveBtn" type="button">新規保存</button>
@@ -1943,11 +1943,25 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     });
   }
 
+  function normalizeEnemySlots(value) {
+    return Object.fromEntries(Object.entries(value && typeof value === 'object' ? value : {}).filter(([key, id]) =>
+      /^enemy-(cap|lib|[as][1-3]|bench[12])$/.test(key) && (id === '' || /^e([1-9]|10)$/.test(id))));
+  }
+
+  function restoreEnemyAssignments() {
+    const slots = activeMemberSet().enemySlots || {};
+    enemyPositionIds.forEach((id, index) => {
+      const piece = pieces.find(item => item.id === id);
+      if (piece) piece.memberId = Object.hasOwn(slots, id) ? slots[id] : `e${index + 1}`;
+    });
+  }
+
   function makeMemberSet(name, source = null) {
     return {
       id: `set-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
       name: String(name || '大会メンバー').trim().slice(0, 30) || '大会メンバー',
       members: normalizeMembers(source?.members),
+      enemySlots: normalizeEnemySlots(source?.enemySlots),
       enemies: normalizeEnemies(source?.enemies)
     };
   }
@@ -1960,6 +1974,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
           id: String(set.id || `set-${Date.now()}`),
           name: String(set.name || '大会メンバー').slice(0, 30),
           members: normalizeMembers(set.members),
+          enemySlots: normalizeEnemySlots(set.enemySlots),
           enemies: normalizeEnemies(set.enemies)
         }));
       }
@@ -1978,6 +1993,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     if (!next) return;
     activeMemberSetId = next.id;
     members = next.members;
+    restoreEnemyAssignments();
     localStorage.setItem(ACTIVE_MEMBER_SET_KEY, activeMemberSetId);
   }
 
@@ -2109,6 +2125,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     positionIds.forEach(pieceId => {
       const p = pieces.find(piece => piece.id === pieceId);
       const memberId = p?.memberId || '';
+      if (team === 'enemy' && p && Object.hasOwn(p, 'memberId') && memberId === '') result[pieceId] = '';
 
       if (memberId && profiles.some(m => m.id === memberId) && !used.has(memberId)) {
         result[pieceId] = memberId;
@@ -2119,11 +2136,17 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     const remaining = profiles.map(m => m.id).filter(id => !used.has(id));
 
     positionIds.forEach(pieceId => {
-      if (!result[pieceId]) result[pieceId] = remaining.shift() || '';
+      if (!Object.hasOwn(result, pieceId)) result[pieceId] = remaining.shift() || '';
     });
 
-    result[benchIds[0]] = remaining.shift() || '';
-    result[benchIds[1]] = remaining.shift() || '';
+    for (const id of benchIds) {
+      const stored = team === 'enemy' ? activeMemberSet().enemySlots : null;
+      const preferred = stored?.[id];
+      if (stored && Object.hasOwn(stored, id) && (preferred === '' || remaining.includes(preferred))) {
+        result[id] = preferred;
+        if (preferred) remaining.splice(remaining.indexOf(preferred), 1);
+      } else result[id] = remaining.shift() || '';
+    }
 
     return result;
   }
@@ -2721,6 +2744,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     applyMode();
     renderDrawings();
     updateCurrentTacticBar();
+    window.dispatchEvent(new Event('makura-opponent-change'));
   }
 
   function bindDrag(el, p) {
@@ -2913,7 +2937,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   function startFormation() {
     const assignments = new Map(
       pieces
-        .filter(p => p.kind === 'player' && p.memberId)
+        .filter(p => p.kind === 'player' && Object.hasOwn(p, 'memberId'))
         .map(p => [p.id, p.memberId])
     );
 
@@ -2958,6 +2982,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   saveMembersBtn.addEventListener('click', () => {
     members = clone(draftMembers);
     activeMemberSet().enemies = normalizeEnemies(draftEnemies);
+    activeMemberSet().enemySlots = normalizeEnemySlots(draftSlots);
     saveMembersToStorage();
 
     ownPositionIds.forEach(pieceId => {
@@ -2974,8 +2999,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       if (!p) return;
 
       const memberId = draftSlots[pieceId] || '';
-      if (memberId) p.memberId = memberId;
-      else delete p.memberId;
+      p.memberId = memberId;
     });
 
     membersModal.hidden = true;
@@ -3788,6 +3812,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
         id: String(set.id || `set-${Date.now()}`),
         name: String(set.name || '大会メンバー').slice(0, 30),
         members: normalizeMembers(set.members),
+        enemySlots: normalizeEnemySlots(set.enemySlots),
         enemies: normalizeEnemies(set.enemies)
       }));
       const requestedId = typeof data.activeMemberSetId === 'string' ? data.activeMemberSetId : memberSets[0].id;
@@ -3823,6 +3848,16 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     }
   }
 
+  function applyEnemyTeam(profiles, slots) {
+    activeMemberSet().enemies = normalizeEnemies(profiles);
+    activeMemberSet().enemySlots = normalizeEnemySlots(slots);
+    restoreEnemyAssignments();
+    localStorage.setItem(MEMBER_SETS_KEY, JSON.stringify(memberSets));
+    render();
+    updateOverwriteUI();
+    window.MakuraCloud?.schedulePush?.();
+  }
+
   window.MakuraAnalysisBridge = {
  persistMemberSetsLocally(){localStorage.setItem(MEMBER_SETS_KEY, JSON.stringify(memberSets));},
 get memberSets(){return memberSets;}, set memberSets(value){memberSets=value;},
@@ -3833,7 +3868,7 @@ get draftEnemies(){return draftEnemies;}, set draftEnemies(value){draftEnemies=v
 get draftSlots(){return draftSlots;}, set draftSlots(value){draftSlots=value;},
 get memberEditorTeam(){return memberEditorTeam;}, set memberEditorTeam(value){memberEditorTeam=value;},
 get currentTacticId(){return currentTacticId;}, set currentTacticId(value){currentTacticId=value;},
-currentBoardSnapshot,activeMemberSet,selectMemberSet,applyBoardSnapshot,renderLineupModal,updateCurrentTacticBar,updateOverwriteUI,showToast,ownPositionIds,enemyPositionIds,lineupSlotIds,enemyLineupSlotIds,stage,drawToolbar
+applyEnemyTeam,buildCurrentLineupSlots,currentBoardSnapshot,activeMemberSet,selectMemberSet,applyBoardSnapshot,renderLineupModal,updateCurrentTacticBar,updateOverwriteUI,showToast,ownPositionIds,enemyPositionIds,lineupSlotIds,enemyLineupSlotIds,stage,drawToolbar
 };
   window.MakuraAppBridge = {
     exportCloudData,
@@ -3848,6 +3883,7 @@ currentBoardSnapshot,activeMemberSet,selectMemberSet,applyBoardSnapshot,renderLi
   });
 
 
+  restoreEnemyAssignments();
   render();
   updatePillowToggleUI();
   setDrawTool('move');

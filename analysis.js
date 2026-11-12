@@ -550,21 +550,34 @@
     } catch { return []; }
   }
   const ACTIVE_ENEMY_PRESET_KEY = 'makura-active-enemy-preset-v1';
-  function renderBoardEnemyTeams(preferredId = localStorage.getItem(ACTIVE_ENEMY_PRESET_KEY) || '') {
+  function renderBoardEnemyTeams() {
     const select = $('boardEnemyTeamSelect');
     if (!select) return;
     const enemyPresets = presets().filter(preset => preset.team === 'enemy');
+    const profiles = api.activeMemberSet().enemies;
+    const slots = api.buildCurrentLineupSlots('enemy');
+    const matches = preset => profiles.every(profile => {
+      const saved = (Array.isArray(preset.profiles) ? preset.profiles : []).find(item => item.id === profile.id);
+      return saved && saved.name === profile.name && (saved.hand || '') === (profile.hand || '');
+    }) && api.enemyLineupSlotIds.every(id => (preset.slots?.[id] || '') === (slots[id] || ''));
+    const matching = enemyPresets.filter(matches);
+    const preferredId = localStorage.getItem(ACTIVE_ENEMY_PRESET_KEY) || '';
+    const custom = profiles.some(profile => profile.name || profile.hand);
+    const active = matching.find(item => item.id === preferredId) || (custom ? matching[0] : null);
     select.replaceChildren(
-      new Option(enemyPresets.length ? '相手チームを選択' : '固定チーム未登録', ''),
+      new Option('フリー（未指定）', ''),
+      ...(custom && !active ? [Object.assign(new Option('フリー（編集中）', '__free_custom__'), { disabled: true })] : []),
       ...enemyPresets.map(preset => new Option(preset.name, preset.id))
     );
-    select.value = enemyPresets.some(preset => preset.id === preferredId) ? preferredId : '';
+    select.value = active?.id || (custom ? '__free_custom__' : '');
+    localStorage.setItem(ACTIVE_ENEMY_PRESET_KEY, active?.id || '');
   }
+  window.addEventListener('makura-opponent-change', renderBoardEnemyTeams);
   function presetList() {
     const team = api.memberEditorTeam;
     const own = team === 'mine';
     $('teamPresetLabel').textContent = own ? '自チームの大会編成' : '相手の固定チーム';
-    $('teamPresetName').placeholder = own ? '大会編成名' : '相手チーム名';
+    $('teamPresetName').placeholder = own ? '大会編成名' : 'チーム名';
     $('saveTeamPreset').textContent = own ? '大会編成として保存' : '固定チームとして保存';
     $('loadTeamPreset').textContent = own ? 'この大会編成を適用' : 'この相手チームを適用';
     $('teamPresetHint').textContent = own
@@ -601,25 +614,16 @@
     const slots = preset.team === 'mine' ? api.lineupSlotIds : api.enemyLineupSlotIds;
     for (const id of slots) api.draftSlots[id] = preset.slots[id] || '';
     api.renderLineupModal(); presetList();
-    if (preset.team === 'enemy') {
-      localStorage.setItem(ACTIVE_ENEMY_PRESET_KEY, preset.id);
-      renderBoardEnemyTeams(preset.id);
-    }
     api.showToast(preset.team === 'mine' ? '大会編成を適用しました。完了で確定します' : '相手チームを適用しました。完了で確定します');
   };
   $('boardEnemyTeamSelect').onchange = event => {
-    const preset = presets().find(item => item.id === event.target.value && item.team === 'enemy');
-    if (!preset) return;
-    $('membersBtn').click();
-    $('enemyMembersTab').click();
-    api.draftEnemies = copy(preset.profiles);
-    for (const id of api.enemyLineupSlotIds) api.draftSlots[id] = preset.slots[id] || '';
-    api.renderLineupModal();
-    $('saveMembersBtn').click();
-    localStorage.setItem(ACTIVE_ENEMY_PRESET_KEY, preset.id);
-    renderBoardEnemyTeams(preset.id);
-    window.MakuraCloud?.schedulePush?.();
-    api.showToast(`相手チームを「${preset.name}」へ切り替えました`);
+    const id = event.target.value;
+    const preset = presets().find(item => item.id === id && item.team === 'enemy');
+    if (id && !preset) { renderBoardEnemyTeams(); return; }
+    localStorage.setItem(ACTIVE_ENEMY_PRESET_KEY, id);
+    api.applyEnemyTeam(preset ? copy(preset.profiles) : [], preset ? copy(preset.slots) : null);
+    renderBoardEnemyTeams();
+    api.showToast(preset ? `相手チームを「${preset.name}」へ切り替えました` : '相手をフリー（未指定）へ戻しました');
   };
   $('editEnemyTeamBtn').onclick = () => {
     $('membersBtn').click();
