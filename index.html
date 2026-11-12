@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.57</title>
+  <title>まくら投げ戦術ボード Ver.0.58</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -274,6 +274,11 @@
       letter-spacing: -0.08em;
     }
 
+    .piece.named.name-3 .piece-label { font-size: clamp(9px, 1.18vw, 13px); letter-spacing: -0.10em; }
+    .piece.named.name-4 .piece-label { font-size: clamp(8px, 1.02vw, 12px); letter-spacing: -0.12em; }
+    .piece.named.name-5 .piece-label,
+    .piece.named.name-6 .piece-label { font-size: clamp(7px, .90vw, 10px); letter-spacing: -0.14em; }
+
     .piece .piece-role {
       display: none;
     }
@@ -303,6 +308,11 @@
       font-size: clamp(8px, .95vw, 11px);
       letter-spacing: -0.08em;
     }
+
+    .piece.support.named.name-3 .piece-label,
+    .piece.support.named.name-4 .piece-label,
+    .piece.support.named.name-5 .piece-label,
+    .piece.support.named.name-6 .piece-label { font-size: clamp(6px, .68vw, 8px); letter-spacing: -0.14em; }
 
     .piece.support.named .piece-role {
       font-size: clamp(5px, .52vw, 7px);
@@ -351,6 +361,11 @@
       font-size: clamp(10px, 1.15vw, 13px);
       letter-spacing: -0.04em;
     }
+
+    .piece.libero-guard.named.name-3 .piece-label,
+    .piece.libero-guard.named.name-4 .piece-label,
+    .piece.libero-guard.named.name-5 .piece-label,
+    .piece.libero-guard.named.name-6 .piece-label { font-size: clamp(8px, .92vw, 11px); letter-spacing: -0.10em; }
 
     .piece.libero-guard.named .piece-role {
       font-size: clamp(5px, .58vw, 7px);
@@ -1478,6 +1493,14 @@ body[data-view=video] .transport,body[data-view=video] .video-draw-controls {wid
 .stage .piece.pillow,.ipad-like .stage .piece.pillow {width:5cqw;height:3.6cqw}
 .stage .piece.named .piece-label,.ipad-like .stage .piece.named .piece-label {font-size:2.5cqw}
 .stage .piece.named.name-1 .piece-label,.ipad-like .stage .piece.named.name-1 .piece-label {font-size:3cqw}
+.stage .piece.named.name-3 .piece-label,.ipad-like .stage .piece.named.name-3 .piece-label {font-size:2.05cqw}
+.stage .piece.named.name-4 .piece-label,.ipad-like .stage .piece.named.name-4 .piece-label {font-size:1.8cqw}
+.stage .piece.named.name-5 .piece-label,.stage .piece.named.name-6 .piece-label,
+.ipad-like .stage .piece.named.name-5 .piece-label,.ipad-like .stage .piece.named.name-6 .piece-label {font-size:1.5cqw}
+.stage .piece.support.named.name-3 .piece-label,.stage .piece.support.named.name-4 .piece-label,
+.stage .piece.support.named.name-5 .piece-label,.stage .piece.support.named.name-6 .piece-label {font-size:1.05cqw}
+.stage .piece.libero-guard.named.name-3 .piece-label,.stage .piece.libero-guard.named.name-4 .piece-label,
+.stage .piece.libero-guard.named.name-5 .piece-label,.stage .piece.libero-guard.named.name-6 .piece-label {font-size:1.75cqw}
 .stage .piece.named .piece-role,.ipad-like .stage .piece.named .piece-role {font-size:1.3cqw}
 #lineupGrid,#enemyRosterGrid {-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #lineupGrid input,#enemyRosterGrid input {-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
@@ -1506,7 +1529,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.57</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.58</span></div>
       <select id="analysisView" class="title-view-select" aria-label="表示モード"><option value="board" selected>戦術ボード</option><option value="split">戦術＋動画</option><option value="video">動画</option></select>
     </div>
 
@@ -1605,6 +1628,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     <div class="draw-toolbar compact" id="drawToolbar" aria-label="操作ツール">
       <button class="draw-tool active" id="toolMove" type="button">駒移動</button>
       <button class="draw-tool" id="membersBtn" type="button">メンバー</button>
+      <button class="draw-tool" id="swapTeamSidesBtn" type="button">自・相手 入替</button>
       <button class="draw-tool" id="toggleDrawToolsBtn" type="button">描画</button>
       <button class="draw-tool draw-optional" id="toolArrowMove" type="button">→ 移動</button>
       <button class="draw-tool draw-optional" id="toolArrowThrow" type="button">→ 投球</button>
@@ -1653,7 +1677,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     </div>
 
     <div class="member-note" style="margin:0 0 7px;">
-      自チームの大会編成です。同じ大会編成を使う戦術には名前・番号・利き腕の変更が共通反映されます。表示は2文字までです。
+      自チームの大会編成です。同じ大会編成を使う戦術には名前・番号・利き腕の変更が共通反映されます。表示は全角3文字／半角6文字までです。
     </div>
     </div>
 
@@ -1737,6 +1761,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   const previewDrawingEl = document.getElementById('previewDrawing');
   const drawToolbar = document.getElementById('drawToolbar');
   const membersBtn = document.getElementById('membersBtn');
+  const swapTeamSidesBtn = document.getElementById('swapTeamSidesBtn');
   const toggleDrawToolsBtn = document.getElementById('toggleDrawToolsBtn');
   const toolMove = document.getElementById('toolMove');
   const toolArrowMove = document.getElementById('toolArrowMove');
@@ -1791,6 +1816,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   let showPillows = false;
   let drawTool = 'move';
   let drawings = [];
+  let teamsSwapped = false;
   let drawingStart = null;
   let inkPoints = [], inkPointer = null;
   const inkUndo = [], inkRedo = [];
@@ -1872,13 +1898,33 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     return ['right','left','both'].includes(value) ? value : '';
   }
 
+  function nameDisplayUnits(value) {
+    return Array.from(String(value || '')).reduce((total, char) => {
+      const code = char.codePointAt(0);
+      return total + (code <= 0x7f || (code >= 0xff61 && code <= 0xff9f) ? 1 : 2);
+    }, 0);
+  }
+
+  function trimMemberName(value, maxUnits = 6) {
+    let result = '';
+    let units = 0;
+    for (const char of Array.from(String(value || '').trim())) {
+      const code = char.codePointAt(0);
+      const next = code <= 0x7f || (code >= 0xff61 && code <= 0xff9f) ? 1 : 2;
+      if (units + next > maxUnits) break;
+      result += char;
+      units += next;
+    }
+    return result;
+  }
+
   function normalizeMembers(list) {
     const byId = new Map((Array.isArray(list) ? list : []).map(m => [m.id, m]));
     return blankMembers().map(base => {
       const saved = byId.get(base.id) || {};
       return {
         id: base.id,
-        name: typeof saved.name === 'string' ? Array.from(saved.name.trim()).slice(0, 2).join('') : '',
+        name: typeof saved.name === 'string' ? trimMemberName(saved.name) : '',
         hand: normalizeHand(saved.hand)
       };
     });
@@ -1891,7 +1937,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       const saved = byId.get(base.id) || (legacyId ? byId.get(legacyId) : null) || {};
       return {
         id: base.id,
-        name: typeof saved.name === 'string' ? Array.from(saved.name.trim()).slice(0, 2).join('') : '',
+        name: typeof saved.name === 'string' ? trimMemberName(saved.name) : '',
         hand: normalizeHand(saved.hand)
       };
     });
@@ -1947,7 +1993,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
         return {
           id: base.id,
           name: saved && typeof saved.name === 'string'
-            ? Array.from(saved.name.trim()).slice(0, 2).join('')
+            ? trimMemberName(saved.name)
             : '',
           hand: normalizeHand(saved?.hand)
         };
@@ -2145,7 +2191,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
         const current = draftMemberBySlot(slotId);
         if (!current) return;
 
-        const value = Array.from(input.value.trim()).slice(0, 2).join('');
+        const value = trimMemberName(input.value);
         current.name = value;
         if (input.value !== value) input.value = value;
       };
@@ -2402,8 +2448,8 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 
     if (!withinCourtX) return false;
 
-    if (p.team === 'enemy') {
-      // 上側チームのリベロ帯
+    if ((p.team === 'enemy') !== teamsSwapped) {
+      // 表示上側チームのリベロ帯
       return p.y >= 0.368 && p.y <= 0.431;
     }
 
@@ -2617,6 +2663,8 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 
   function render() {
     stage.querySelectorAll('.piece').forEach(el => el.remove());
+    swapTeamSidesBtn.classList.toggle('active', teamsSwapped);
+    swapTeamSidesBtn.textContent = teamsSwapped ? '自チームを下へ' : '自・相手 入替';
 
     pieces.forEach(p => {
       if (!showPillows && p.kind === 'pillow') return;
@@ -2638,8 +2686,8 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 
         if (assignedName) {
           el.classList.add('named');
-          const nameLength = Array.from(assignedName).length;
-          el.classList.add(nameLength <= 1 ? 'name-1' : 'name-2');
+          const nameUnits = Math.max(1, Math.min(6, nameDisplayUnits(assignedName)));
+          el.classList.add(`name-${nameUnits}`);
         }
 
         const label = document.createElement('span');
@@ -2758,9 +2806,36 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     const key = p.role === 'libero' ? 'libero' : p.number;
     return {
       x: (p.team === 'mine' ? mineX : enemyX)[key] || .50,
-      y: p.team === 'mine' ? .932 : .068
+      y: teamsSwapped
+        ? (p.team === 'mine' ? .068 : .932)
+        : (p.team === 'mine' ? .932 : .068)
     };
   }
+
+  function invertDrawingY(drawing) {
+    const next = clone(drawing);
+    if (typeof next.y1 === 'number') next.y1 = 1 - next.y1;
+    if (typeof next.y2 === 'number') next.y2 = 1 - next.y2;
+    if (Array.isArray(next.points)) next.points = next.points.map(point => ({ ...point, y: 1 - point.y }));
+    return next;
+  }
+
+  swapTeamSidesBtn.addEventListener('click', () => {
+    pieces = pieces.map(piece => {
+      const next = { ...piece, y: 1 - piece.y };
+      if (typeof piece.prevY === 'number') next.prevY = 1 - piece.prevY;
+      return next;
+    });
+    drawings = drawings.map(invertDrawingY);
+    for (const history of [inkUndo, inkRedo]) {
+      for (let i = 0; i < history.length; i++) history[i] = history[i].map(invertDrawingY);
+    }
+    teamsSwapped = !teamsSwapped;
+    selectedId = null;
+    render();
+    updateOverwriteUI();
+    showToast(teamsSwapped ? '自チームを上側へ入れ替えました' : '自チームを下側へ戻しました');
+  });
 
   hitBtn.addEventListener('click', () => {
     const p = selectedPiece();
@@ -2851,6 +2926,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     mode = 'normal';
     showPillows = false;
     drawings = [];
+    teamsSwapped = false;
     inkUndo.length=0;inkRedo.length=0;
     currentTacticId = null;
     setDrawTool('move');
@@ -2929,9 +3005,10 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 
   function currentBoardSnapshot() {
     return {
-      version: 2,
+      version: 3,
       mode,
       showPillows,
+      teamsSwapped,
       pieces: clone(pieces),
       drawings: clone(drawings)
     };
@@ -2952,6 +3029,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 
     mode = data.mode === 'final30' ? 'final30' : 'normal';
     showPillows = data.showPillows !== false;
+    teamsSwapped = data.teamsSwapped === true;
     drawings = Array.isArray(data.drawings) ? clone(data.drawings) : [];
     inkUndo.length=0;inkRedo.length=0;
     selectedId = null;
@@ -3722,7 +3800,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
         return {
           id: base.id,
           name: saved && typeof saved.name === 'string'
-            ? Array.from(saved.name.trim()).slice(0, 2).join('')
+            ? trimMemberName(saved.name)
             : '',
           hand: normalizeHand(saved?.hand)
         };
