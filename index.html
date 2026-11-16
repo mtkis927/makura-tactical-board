@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.58.3</title>
+  <title>まくら投げ戦術ボード Ver.0.58.4</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -1521,10 +1521,17 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 .current-tactic-actions {flex-wrap:wrap}
 .enemy-team-switcher {flex:1 1 160px;min-width:0}
 .enemy-team-switcher select {width:100px;min-width:0;flex:1}
-#ownMemberSetControls summary {font-size:11px;color:var(--muted);cursor:pointer;margin:4px 0}
+.team-editor-controls {display:grid;gap:6px;margin:8px 0}
+.team-editor-controls>label {font-size:12px;font-weight:800}
+.team-editor-choice {display:flex;gap:6px}
+.team-editor-choice select {min-width:0;flex:1}
+.team-editor-choice button {flex:none}
+.team-editor-controls input {width:100%;min-height:38px;border:1px solid #cfd6dd;border-radius:9px;padding:8px 10px;font:inherit;background:#fff;color:var(--text)}
+#editingTargetLabel {font-weight:800;margin:2px 0}
 /* Prevent selection on the app chrome while preserving editable fields and IDs. */
-.app {-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.app input,.app textarea,.app [contenteditable="true"],.app .cloud-uid {
+.app,.modal-backdrop {-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.app input,.app textarea,.app [contenteditable="true"],.app .cloud-uid,
+.modal-backdrop input,.modal-backdrop textarea,.modal-backdrop [contenteditable="true"],.modal-backdrop .cloud-uid {
   -webkit-user-select:text;user-select:text;-webkit-touch-callout:default;
 }
 </style>
@@ -1548,7 +1555,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.58.3</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.58.4</span></div>
       <select id="analysisView" class="title-view-select" aria-label="表示モード"><option value="board" selected>戦術ボード</option><option value="split">戦術＋動画</option><option value="video">動画</option></select>
     </div>
 
@@ -1576,14 +1583,14 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     </div>
     <div class="current-tactic-actions">
       <div class="enemy-team-switcher">
-        <label for="boardOwnTeamSelect">自分</label>
+        <label for="boardOwnTeamSelect">自チーム</label>
         <select id="boardOwnTeamSelect" aria-label="自チームを選択"><option value="">現在の自チーム</option></select>
-        <button class="toolbar-button" id="editOwnTeamBtn" type="button">編集</button>
+        <button class="toolbar-button" id="editOwnTeamBtn" type="button" aria-label="自チームの登録内容を編集">チーム編集</button>
       </div>
       <div class="enemy-team-switcher">
         <label for="boardEnemyTeamSelect">相手</label>
         <select id="boardEnemyTeamSelect" aria-label="対戦相手チーム"><option value="">フリー（未指定）</option></select>
-        <button class="toolbar-button" id="editEnemyTeamBtn" type="button">編集</button>
+        <button class="toolbar-button" id="editEnemyTeamBtn" type="button" aria-label="相手チームの登録内容を編集">チーム編集</button>
       </div>
       <button class="toolbar-button quick-save-button" id="quickSaveBtn" type="button">新規保存</button>
       <button class="toolbar-button camera-button" id="screenshotBtn" type="button" aria-label="戦術画像を作成" title="戦術画像を作成">📷</button>
@@ -1651,7 +1658,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   <footer class="bottom">
     <div class="draw-toolbar compact" id="drawToolbar" aria-label="操作ツール">
       <button class="draw-tool active" id="toolMove" type="button">駒移動</button>
-      <button class="draw-tool" id="membersBtn" type="button">メンバー</button>
+      <button class="draw-tool" id="membersBtn" type="button">チーム登録</button>
       <button class="draw-tool" id="swapTeamSidesBtn" type="button">自・相手 入替</button>
       <button class="draw-tool" id="toggleDrawToolsBtn" type="button">描画</button>
       <button class="draw-tool draw-optional" id="toolArrowMove" type="button">→ 移動</button>
@@ -1674,10 +1681,10 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 <div class="modal-backdrop" id="membersModal" hidden>
   <div class="modal-card members-modal-card" role="dialog" aria-modal="true" aria-labelledby="membersModalTitle">
     <div class="members-modal-header">
-      <div class="modal-title" id="membersModalTitle">チーム・名簿</div>
+      <div class="modal-title" id="membersModalTitle">登録チームを編集</div>
       <div class="members-header-actions">
-        <button class="mini-button" id="closeMembersBtn" type="button">編集を取消</button>
-        <button class="toolbar-button" id="saveMembersBtn" type="button">編集を保存</button>
+        <button class="mini-button" id="closeMembersBtn" type="button">閉じる・取消</button>
+        <button class="toolbar-button" id="saveMembersBtn" type="button" disabled>変更を保存</button>
       </div>
     </div>
 
@@ -1686,32 +1693,13 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       <button class="member-tab" id="enemyMembersTab" type="button" role="tab" aria-selected="false">相手チーム</button>
     </div>
 
-    <details id="ownMemberSetControls"><summary>大会の管理（既存データ）</summary>
-    <div class="member-set-toolbar">
-      <label for="memberSetSelect">大会</label><select id="memberSetSelect" aria-label="大会メンバーセット"></select>
-      <button class="member-set-more" id="memberSetMenuBtn" type="button" aria-label="セット操作" aria-expanded="false">•••</button>
-    </div>
-    <div class="member-set-menu" id="memberSetMenu" hidden>
-      <input id="memberSetNameInput" type="text" maxlength="30" placeholder="大会名" aria-label="大会名" />
-      <button class="mini-button" id="newMemberSetBtn" type="button">大会を追加</button>
-      <button class="mini-button" id="duplicateMemberSetBtn" type="button">大会を複製</button>
-      <button class="mini-button" id="renameMemberSetBtn" type="button">名称変更</button>
-      <button class="danger-mini" id="deleteMemberSetBtn" type="button">削除</button>
-    </div>
-
-    <div class="member-note" style="margin:0 0 7px;">
-      以前の大会データを管理できます。通常の切替はチーム選択だけで行えます。名前は全角3文字／半角6文字までです。
-    </div>
-    </details>
-
-    <div class="analysis-controls team-library-controls">
-      <label id="teamPresetLabel" for="teamPresetList">自チームを選択</label>
-      <select id="teamPresetList" aria-label="保存済み名簿（呼び出し用）"><option value="">現在の大会の名簿</option></select>
-      <span id="teamPresetHint">選ぶだけで盤面に反映します。</span>
-      <details id="teamPresetSaveOptions"><summary id="teamPresetSaveSummary">チームを新規登録・更新</summary>
-        <div class="preset-save-fields"><input id="teamPresetName" aria-label="保存する名簿名" placeholder="名簿コピー名（任意）"><button id="saveTeamPreset" type="button">名簿コピーを保存</button></div>
-      </details>
-      <button id="loadTeamPreset" type="button" hidden>名簿を読み込む</button>
+    <div class="team-editor-controls">
+      <label id="teamPresetLabel" for="teamPresetList">チームを選択</label>
+      <div class="team-editor-choice"><select id="teamPresetList" aria-label="チームを選択"></select><button id="newTeamBtn" class="toolbar-button" type="button">新規チーム</button></div>
+      <div id="editingTargetLabel" class="member-note"></div>
+      <label for="teamPresetName">チーム名</label>
+      <input id="teamPresetName" aria-label="チーム名" placeholder="チーム名" maxlength="30">
+      <div id="teamPresetHint" class="member-note">チームを選ぶと即反映。入力した変更は保存で反映します。</div>
     </div>
     <div class="member-panel" id="ownMembersPanel" role="tabpanel">
       <div class="lineup-grid" id="lineupGrid"></div>
@@ -1821,15 +1809,6 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   const membersModal = document.getElementById('membersModal');
   const lineupGrid = document.getElementById('lineupGrid');
   const enemyRosterGrid = document.getElementById('enemyRosterGrid');
-  const memberSetSelect = document.getElementById('memberSetSelect');
-  const ownMemberSetControls = document.getElementById('ownMemberSetControls');
-  const memberSetMenuBtn = document.getElementById('memberSetMenuBtn');
-  const memberSetMenu = document.getElementById('memberSetMenu');
-  const memberSetNameInput = document.getElementById('memberSetNameInput');
-  const newMemberSetBtn = document.getElementById('newMemberSetBtn');
-  const duplicateMemberSetBtn = document.getElementById('duplicateMemberSetBtn');
-  const renameMemberSetBtn = document.getElementById('renameMemberSetBtn');
-  const deleteMemberSetBtn = document.getElementById('deleteMemberSetBtn');
   const saveMembersBtn = document.getElementById('saveMembersBtn');
   const closeMembersBtn = document.getElementById('closeMembersBtn');
   const ownMembersTab = document.getElementById('ownMembersTab');
@@ -2149,11 +2128,6 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     enemyMembersTab.setAttribute('aria-selected', String(!own));
     ownMembersPanel.hidden = !own;
     enemyMembersPanel.hidden = own;
-    ownMemberSetControls.hidden = !own;
-    if (!own) {
-      memberSetMenu.hidden = true;
-      memberSetMenuBtn.setAttribute('aria-expanded', 'false');
-    }
   }
 
   function buildCurrentLineupSlots(team = 'mine') {
@@ -2199,18 +2173,6 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   }
 
   function renderLineupModal() {
-    memberSetMenu.hidden = true;
-    memberSetMenuBtn.setAttribute('aria-expanded', 'false');
-    memberSetSelect.replaceChildren();
-    memberSets.forEach(set => {
-      const option = document.createElement('option');
-      option.value = set.id;
-      option.textContent = set.name;
-      option.selected = set.id === activeMemberSetId;
-      memberSetSelect.appendChild(option);
-    });
-    deleteMemberSetBtn.disabled = memberSets.length <= 1;
-    memberSetNameInput.value = activeMemberSet().name;
     renderTeamLineup(lineupGrid, lineupSlotIds, 'bench1');
     renderTeamLineup(enemyRosterGrid, enemyLineupSlotIds, 'enemy-bench1');
     updateCurrentTacticBar();
@@ -2309,75 +2271,6 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 
   ownMembersTab.addEventListener('click', () => setMemberEditorTeam('mine'));
   enemyMembersTab.addEventListener('click', () => setMemberEditorTeam('enemy'));
-  memberSetMenuBtn.addEventListener('click', () => {
-    const willOpen = memberSetMenu.hidden;
-    memberSetMenu.hidden = !willOpen;
-    memberSetMenuBtn.setAttribute('aria-expanded', String(willOpen));
-    if (willOpen) memberSetNameInput.focus();
-  });
-
-  memberSetSelect.addEventListener('change', () => {
-    applyOwnMemberSet(memberSetSelect.value);
-    refreshMemberDrafts('mine');
-  });
-
-  newMemberSetBtn.addEventListener('click', () => {
-    const baseName = '新規大会';
-    let name = baseName;
-    let suffix = 2;
-    while (memberSets.some(item => item.name === name)) name = `${baseName}${suffix++}`;
-    const set = makeMemberSet(name);
-    memberSets.push(set);
-    selectMemberSet(set.id);
-    saveMembersToStorage();
-    draftMembers = clone(members);
-    draftEnemies = clone(activeMemberSet().enemies);
-    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
-    renderLineupModal();
-  });
-
-  duplicateMemberSetBtn.addEventListener('click', () => {
-    const current = activeMemberSet();
-    const typed = memberSetNameInput.value.trim();
-    const name = typed && typed !== current.name ? typed : `${current.name} コピー`;
-    const set = makeMemberSet(name, current);
-    memberSets.push(set);
-    selectMemberSet(set.id);
-    saveMembersToStorage();
-    draftMembers = clone(members);
-    draftEnemies = clone(activeMemberSet().enemies);
-    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
-    renderLineupModal();
-  });
-
-  renameMemberSetBtn.addEventListener('click', () => {
-    const current = activeMemberSet();
-    const name = memberSetNameInput.value.trim();
-    if (!name) {
-      showToast('大会名を入力してください');
-      memberSetNameInput.focus();
-      return;
-    }
-    current.name = name.trim().slice(0, 30);
-    saveMembersToStorage();
-    renderLineupModal();
-  });
-
-  deleteMemberSetBtn.addEventListener('click', () => {
-    if (memberSets.length <= 1) return;
-    const current = activeMemberSet();
-    if (!confirm(`「${current.name}」を削除しますか？\nこのセットを使う戦術は、残っているメンバーセットへ切り替わります。`)) return;
-    memberSets = memberSets.filter(set => set.id !== current.id);
-    selectMemberSet(memberSets[0].id);
-    const tactics = getTactics().map(t => t.memberSetId === current.id ? {...t, memberSetId:activeMemberSetId} : t);
-    setTactics(tactics);
-    saveMembersToStorage();
-    draftMembers = clone(members);
-    draftEnemies = clone(activeMemberSet().enemies);
-    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
-    renderLineupModal();
-  });
-
   function bindLineupDrag(handle, sourceSlotId) {
     handle.addEventListener('pointerdown', e => {
       if (e.button !== undefined && e.button !== 0) return;
@@ -3019,40 +2912,10 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   });
 
   saveMembersBtn.addEventListener('click', () => {
-    ensureWorkingTeam();
-    const currentOwnSlots = buildCurrentLineupSlots('mine');
-    const ownChanged = JSON.stringify(draftMembers) !== JSON.stringify(members)
-      || lineupSlotIds.some(id => (draftSlots[id] || '') !== (currentOwnSlots[id] || ''));
-    if (ownChanged) { members = clone(draftMembers); workingTeam.ownSlots = normalizeTeamSlots(draftSlots, 'mine'); }
-    activeMemberSet().enemies = normalizeEnemies(draftEnemies);
-    activeMemberSet().enemySlots = normalizeEnemySlots(draftSlots);
-    saveMembersToStorage();
-
-    if (ownChanged) ownPositionIds.forEach(pieceId => {
-      const p = pieces.find(piece => piece.id === pieceId);
-      if (!p) return;
-
-      const memberId = draftSlots[pieceId] || '';
-      p.memberId = memberId;
-    });
-
-    enemyPositionIds.forEach(pieceId => {
-      const p = pieces.find(piece => piece.id === pieceId);
-      if (!p) return;
-
-      const memberId = draftSlots[pieceId] || '';
-      p.memberId = memberId;
-    });
-
-    membersModal.hidden = true;
-    selectedId = null;
-    cleanupLineupDrag();
-    render();
-    showToast('セット編成を反映しました');
+    window.MakuraTeamEditor?.save();
   });
 
-
-  for (const type of ['selectstart', 'contextmenu']) document.querySelector('.app').addEventListener(type, event => {
+  for (const root of document.querySelectorAll('.app,.modal-backdrop')) for (const type of ['selectstart', 'contextmenu']) root.addEventListener(type, event => {
     if (!event.target.closest('input,textarea,select,[contenteditable="true"],.cloud-uid')) event.preventDefault();
   });
 
