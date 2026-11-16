@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.58.2</title>
+  <title>まくら投げ戦術ボード Ver.0.58.3</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -1508,6 +1508,25 @@ body[data-view=video] .transport,body[data-view=video] .video-draw-controls {wid
 @media(max-width:900px){.topbar{grid-template-columns:1fr}.toolbar{justify-content:space-between}.title{font-size:14px}.toolbar-button{padding:6px 8px;min-height:34px}.analysis-layout{grid-template-columns:minmax(0,1fr) minmax(360px,.88fr);gap:7px}.video-panel,.board-panel{padding:6px}.video-panel{gap:7px}.analysis-controls button{padding:6px;min-height:34px}.analysis-controls{gap:4px}.video-draw-controls{gap:3px}.video-tool-button{font-size:10px;padding:6px 3px!important}.draw-tool{font-size:11px;padding:6px 8px;min-height:34px}}
 @media(max-height:650px){.app{padding:7px;gap:5px}.topbar{grid-template-columns:1fr auto}.current-tactic-strip{padding:3px 8px}.toolbar-button,.workspace-nav button,.import-button,select{min-height:32px;padding:5px 8px}.title{font-size:13px}.video-panel{gap:6px;padding:8px}.draw-tool{min-height:32px;padding:5px 7px}.transport .analysis-controls label{display:none}}
 body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:minmax(360px,.8fr) minmax(450px,1.2fr)}
+.member-set-toolbar {grid-template-columns:auto minmax(0,1fr) 42px;align-items:center}
+.member-set-toolbar label {font-size:12px;font-weight:800}
+.member-set-toolbar select {width:100%;min-width:0}
+.team-library-controls {display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.team-library-controls>label {font-size:12px;font-weight:800}
+.team-library-controls select {width:100%;min-width:0}
+#teamPresetHint {font-size:11px;color:var(--muted)}
+#teamPresetSaveOptions summary {cursor:pointer;font-size:12px;color:var(--muted)}
+.preset-save-fields {display:flex;gap:6px;margin-top:6px}
+#teamPresetName {min-width:0;flex:1;width:100%}
+.current-tactic-actions {flex-wrap:wrap}
+.enemy-team-switcher {flex:1 1 160px;min-width:0}
+.enemy-team-switcher select {width:100px;min-width:0;flex:1}
+#ownMemberSetControls summary {font-size:11px;color:var(--muted);cursor:pointer;margin:4px 0}
+/* Prevent selection on the app chrome while preserving editable fields and IDs. */
+.app {-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.app input,.app textarea,.app [contenteditable="true"],.app .cloud-uid {
+  -webkit-user-select:text;user-select:text;-webkit-touch-callout:default;
+}
 </style>
 
 <script>
@@ -1529,7 +1548,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.58.2</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.58.3</span></div>
       <select id="analysisView" class="title-view-select" aria-label="表示モード"><option value="board" selected>戦術ボード</option><option value="split">戦術＋動画</option><option value="video">動画</option></select>
     </div>
 
@@ -1556,6 +1575,11 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       <div class="current-tactic-memo" id="boardTacticMemo">戦術を保存すると名前とメモがここに表示されます。</div>
     </div>
     <div class="current-tactic-actions">
+      <div class="enemy-team-switcher">
+        <label for="boardOwnTeamSelect">自分</label>
+        <select id="boardOwnTeamSelect" aria-label="自チームを選択"><option value="">現在の自チーム</option></select>
+        <button class="toolbar-button" id="editOwnTeamBtn" type="button">編集</button>
+      </div>
       <div class="enemy-team-switcher">
         <label for="boardEnemyTeamSelect">相手</label>
         <select id="boardEnemyTeamSelect" aria-label="対戦相手チーム"><option value="">フリー（未指定）</option></select>
@@ -1650,37 +1674,45 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 <div class="modal-backdrop" id="membersModal" hidden>
   <div class="modal-card members-modal-card" role="dialog" aria-modal="true" aria-labelledby="membersModalTitle">
     <div class="members-modal-header">
-      <div class="modal-title" id="membersModalTitle">セット編成</div>
+      <div class="modal-title" id="membersModalTitle">チーム・名簿</div>
       <div class="members-header-actions">
-        <button class="mini-button" id="closeMembersBtn" type="button">閉じる</button>
-        <button class="toolbar-button" id="saveMembersBtn" type="button">完了</button>
+        <button class="mini-button" id="closeMembersBtn" type="button">編集を取消</button>
+        <button class="toolbar-button" id="saveMembersBtn" type="button">編集を保存</button>
       </div>
     </div>
 
-    <div class="analysis-controls team-library-controls"><label><span id="teamPresetLabel">自チームの大会編成</span> <input id="teamPresetName" placeholder="大会編成名"></label><button id="saveTeamPreset" type="button">大会編成として保存</button><select id="teamPresetList" aria-label="自チーム・相手チーム別の編成"><option value="">自チームの大会編成を選択</option></select><button id="loadTeamPreset" type="button">この大会編成を適用</button><span id="teamPresetHint">大会ごとに変わる自チームを保存します。</span></div>
 <div class="member-tabs" role="tablist" aria-label="編集するチーム">
       <button class="member-tab active" id="ownMembersTab" type="button" role="tab" aria-selected="true">自チーム</button>
       <button class="member-tab" id="enemyMembersTab" type="button" role="tab" aria-selected="false">相手チーム</button>
     </div>
 
-    <div id="ownMemberSetControls">
+    <details id="ownMemberSetControls"><summary>大会の管理（既存データ）</summary>
     <div class="member-set-toolbar">
-      <select id="memberSetSelect" aria-label="大会メンバーセット"></select>
+      <label for="memberSetSelect">大会</label><select id="memberSetSelect" aria-label="大会メンバーセット"></select>
       <button class="member-set-more" id="memberSetMenuBtn" type="button" aria-label="セット操作" aria-expanded="false">•••</button>
     </div>
     <div class="member-set-menu" id="memberSetMenu" hidden>
       <input id="memberSetNameInput" type="text" maxlength="30" placeholder="大会名" aria-label="大会名" />
-      <button class="mini-button" id="newMemberSetBtn" type="button">新規</button>
-      <button class="mini-button" id="duplicateMemberSetBtn" type="button">複製</button>
+      <button class="mini-button" id="newMemberSetBtn" type="button">大会を追加</button>
+      <button class="mini-button" id="duplicateMemberSetBtn" type="button">大会を複製</button>
       <button class="mini-button" id="renameMemberSetBtn" type="button">名称変更</button>
       <button class="danger-mini" id="deleteMemberSetBtn" type="button">削除</button>
     </div>
 
     <div class="member-note" style="margin:0 0 7px;">
-      自チームの大会編成です。同じ大会編成を使う戦術には名前・番号・利き腕の変更が共通反映されます。表示は全角3文字／半角6文字までです。
+      以前の大会データを管理できます。通常の切替はチーム選択だけで行えます。名前は全角3文字／半角6文字までです。
     </div>
-    </div>
+    </details>
 
+    <div class="analysis-controls team-library-controls">
+      <label id="teamPresetLabel" for="teamPresetList">自チームを選択</label>
+      <select id="teamPresetList" aria-label="保存済み名簿（呼び出し用）"><option value="">現在の大会の名簿</option></select>
+      <span id="teamPresetHint">選ぶだけで盤面に反映します。</span>
+      <details id="teamPresetSaveOptions"><summary id="teamPresetSaveSummary">チームを新規登録・更新</summary>
+        <div class="preset-save-fields"><input id="teamPresetName" aria-label="保存する名簿名" placeholder="名簿コピー名（任意）"><button id="saveTeamPreset" type="button">名簿コピーを保存</button></div>
+      </details>
+      <button id="loadTeamPreset" type="button" hidden>名簿を読み込む</button>
+    </div>
     <div class="member-panel" id="ownMembersPanel" role="tabpanel">
       <div class="lineup-grid" id="lineupGrid"></div>
     </div>
@@ -1830,6 +1862,9 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   let memberSets = loadMemberSets();
   let activeMemberSetId = localStorage.getItem(ACTIVE_MEMBER_SET_KEY) || memberSets[0].id;
   if (!memberSets.some(set => set.id === activeMemberSetId)) activeMemberSetId = memberSets[0].id;
+  const WORKING_TEAM_KEY = 'makura-working-teams-v1';
+  let workingTeam = null;
+  try { workingTeam = normalizeWorkingTeam(JSON.parse(localStorage.getItem(WORKING_TEAM_KEY) || 'null')); } catch {}
   let members = activeMemberSet().members;
 
   const defaults = [
@@ -1960,6 +1995,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     return {
       id: `set-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
       name: String(name || '大会メンバー').trim().slice(0, 30) || '大会メンバー',
+      ownSlots: source?.ownSlots ? normalizeTeamSlots(source.ownSlots, 'mine') : undefined,
       members: normalizeMembers(source?.members),
       enemySlots: normalizeEnemySlots(source?.enemySlots),
       enemies: normalizeEnemies(source?.enemies)
@@ -1973,7 +2009,8 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
         return stored.map(set => ({
           id: String(set.id || `set-${Date.now()}`),
           name: String(set.name || '大会メンバー').slice(0, 30),
-          members: normalizeMembers(set.members),
+          ownSlots: set.ownSlots ? normalizeTeamSlots(set.ownSlots, 'mine') : undefined,
+        members: normalizeMembers(set.members),
           enemySlots: normalizeEnemySlots(set.enemySlots),
           enemies: normalizeEnemies(set.enemies)
         }));
@@ -1985,12 +2022,15 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   }
 
   function activeMemberSet() {
+    if (workingTeam) return workingTeam;
     return memberSets.find(set => set.id === activeMemberSetId) || memberSets[0];
   }
 
   function selectMemberSet(id) {
     const next = memberSets.find(set => set.id === id);
     if (!next) return;
+    workingTeam = null;
+    localStorage.removeItem(WORKING_TEAM_KEY);
     activeMemberSetId = next.id;
     members = next.members;
     restoreEnemyAssignments();
@@ -2023,6 +2063,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     const set = activeMemberSet();
     set.members = normalizeMembers(members);
     members = set.members;
+    if (workingTeam) persistWorkingTeam();
     localStorage.setItem(MEMBER_SETS_KEY, JSON.stringify(memberSets));
     localStorage.setItem(ACTIVE_MEMBER_SET_KEY, activeMemberSetId);
     localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
@@ -2125,7 +2166,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     positionIds.forEach(pieceId => {
       const p = pieces.find(piece => piece.id === pieceId);
       const memberId = p?.memberId || '';
-      if (team === 'enemy' && p && Object.hasOwn(p, 'memberId') && memberId === '') result[pieceId] = '';
+      if (p && Object.hasOwn(p, 'memberId') && memberId === '') result[pieceId] = '';
 
       if (memberId && profiles.some(m => m.id === memberId) && !used.has(memberId)) {
         result[pieceId] = memberId;
@@ -2140,7 +2181,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     });
 
     for (const id of benchIds) {
-      const stored = team === 'enemy' ? activeMemberSet().enemySlots : null;
+      const stored = team === 'enemy' ? activeMemberSet().enemySlots : activeMemberSet().ownSlots;
       const preferred = stored?.[id];
       if (stored && Object.hasOwn(stored, id) && (preferred === '' || remaining.includes(preferred))) {
         result[id] = preferred;
@@ -2276,15 +2317,12 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   });
 
   memberSetSelect.addEventListener('change', () => {
-    selectMemberSet(memberSetSelect.value);
-    draftMembers = clone(members);
-    draftEnemies = clone(activeMemberSet().enemies);
-    draftSlots = {...buildCurrentLineupSlots('mine'), ...buildCurrentLineupSlots('enemy')};
-    renderLineupModal();
+    applyOwnMemberSet(memberSetSelect.value);
+    refreshMemberDrafts('mine');
   });
 
   newMemberSetBtn.addEventListener('click', () => {
-    const baseName = '新規チーム';
+    const baseName = '新規大会';
     let name = baseName;
     let suffix = 2;
     while (memberSets.some(item => item.name === name)) name = `${baseName}${suffix++}`;
@@ -2981,10 +3019,11 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   });
 
   saveMembersBtn.addEventListener('click', () => {
+    ensureWorkingTeam();
     const currentOwnSlots = buildCurrentLineupSlots('mine');
     const ownChanged = JSON.stringify(draftMembers) !== JSON.stringify(members)
       || lineupSlotIds.some(id => (draftSlots[id] || '') !== (currentOwnSlots[id] || ''));
-    if (ownChanged) members = clone(draftMembers);
+    if (ownChanged) { members = clone(draftMembers); workingTeam.ownSlots = normalizeTeamSlots(draftSlots, 'mine'); }
     activeMemberSet().enemies = normalizeEnemies(draftEnemies);
     activeMemberSet().enemySlots = normalizeEnemySlots(draftSlots);
     saveMembersToStorage();
@@ -2994,8 +3033,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       if (!p) return;
 
       const memberId = draftSlots[pieceId] || '';
-      if (memberId) p.memberId = memberId;
-      else delete p.memberId;
+      p.memberId = memberId;
     });
 
     enemyPositionIds.forEach(pieceId => {
@@ -3013,6 +3051,10 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     showToast('セット編成を反映しました');
   });
 
+
+  for (const type of ['selectstart', 'contextmenu']) document.querySelector('.app').addEventListener(type, event => {
+    if (!event.target.closest('input,textarea,select,[contenteditable="true"],.cloud-uid')) event.preventDefault();
+  });
 
   const TACTICS_KEY = 'makura-tactics-v1';
 
@@ -3037,6 +3079,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       mode,
       showPillows,
       teamsSwapped,
+      workingTeam: workingTeam ? clone(workingTeam) : null,
       pieces: clone(pieces),
       drawings: clone(drawings)
     };
@@ -3045,6 +3088,9 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   function applyBoardSnapshot(data) {
     if (!data || !Array.isArray(data.pieces)) throw new Error('invalid board data');
 
+    workingTeam = normalizeWorkingTeam(data.workingTeam);
+    members = activeMemberSet().members;
+    if (workingTeam) persistWorkingTeam(); else localStorage.removeItem(WORKING_TEAM_KEY);
     const savedById = new Map(data.pieces.map(p => [p.id, p]));
     pieces = defaults.map(base => {
       const saved = savedById.get(base.id);
@@ -3789,12 +3835,15 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       memberSets: clone(memberSets),
       activeMemberSetId,
       members: clone(members),
+      workingTeam: workingTeam ? clone(workingTeam) : null,
       teamPresets: clone(teamPresets)
     };
   }
 
   function importCloudData(data) {
     if (!data || typeof data !== 'object') return;
+    workingTeam = null;
+    localStorage.removeItem(WORKING_TEAM_KEY);
 
     if (Array.isArray(data.tactics)) {
       localStorage.setItem(TACTICS_KEY, JSON.stringify(data.tactics));
@@ -3815,6 +3864,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       memberSets = data.memberSets.map(set => ({
         id: String(set.id || `set-${Date.now()}`),
         name: String(set.name || '大会メンバー').slice(0, 30),
+        ownSlots: set.ownSlots ? normalizeTeamSlots(set.ownSlots, 'mine') : undefined,
         members: normalizeMembers(set.members),
         enemySlots: normalizeEnemySlots(set.enemySlots),
         enemies: normalizeEnemies(set.enemies)
@@ -3839,6 +3889,9 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
     }
 
+    workingTeam = normalizeWorkingTeam(data.workingTeam);
+    if (workingTeam) { members = workingTeam.members; persistWorkingTeam(); restoreOwnWorkingAssignments(); restoreEnemyAssignments(); }
+    else localStorage.removeItem(WORKING_TEAM_KEY);
     if (currentTacticId && !getTactics().some(t => t.id === currentTacticId)) {
       currentTacticId = null;
     }
@@ -3852,11 +3905,67 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
     }
   }
 
+  function normalizeWorkingTeam(value) {
+    if (!value || typeof value !== 'object' || !memberSets.some(set => set.id === value.id)) return null;
+    return { id:value.id, name:String(value.name || '現在のチーム'),
+      members:normalizeMembers(value.members), enemies:normalizeEnemies(value.enemies),
+      ownSlots: normalizeTeamSlots(value.ownSlots, 'mine'), enemySlots:normalizeEnemySlots(value.enemySlots) };
+  }
+  function normalizeTeamSlots(value, side) {
+    const ids = side === 'mine' ? ['mine-cap','mine-lib','mine-a1','mine-a2','mine-a3','mine-s1','mine-s2','mine-s3','bench1','bench2'] : ['enemy-cap','enemy-lib','enemy-a1','enemy-a2','enemy-a3','enemy-s1','enemy-s2','enemy-s3','enemy-bench1','enemy-bench2'];
+    const pattern = side === 'mine' ? /^m([1-9]|10)$/ : /^e([1-9]|10)$/;
+    return Object.fromEntries(Object.entries(value && typeof value === 'object' ? value : {}).filter(([id, member]) =>
+      ids.includes(id) && (member === '' || pattern.test(member))));
+  }
+  function ensureWorkingTeam() {
+    if (!workingTeam) {
+      workingTeam = clone(activeMemberSet());
+      workingTeam.ownSlots = Object.fromEntries(ownPositionIds.map(id=>[id,pieces.find(item=>item.id===id)?.memberId || '']));
+      workingTeam.enemySlots = buildCurrentLineupSlots('enemy');
+    }
+  }
+  function restoreOwnWorkingAssignments() {
+    if (!workingTeam) return;
+    ownPositionIds.forEach((id,index)=>{
+      const piece=pieces.find(item=>item.id===id);
+      if(piece) piece.memberId=Object.hasOwn(workingTeam.ownSlots,id)?workingTeam.ownSlots[id]:`m${index+1}`;
+    });
+  }
+  function persistWorkingTeam() {
+    if (workingTeam) localStorage.setItem(WORKING_TEAM_KEY, JSON.stringify(workingTeam));
+  }
+  function applyOwnTeam(profiles, slots, name) {
+    ensureWorkingTeam();
+    workingTeam.members = normalizeMembers(profiles);
+    workingTeam.ownSlots = normalizeTeamSlots(slots, 'mine');
+    if (name) workingTeam.name = String(name);
+    members = workingTeam.members;
+    ownPositionIds.forEach((id,index) => {
+      const piece = pieces.find(item => item.id === id);
+      if (piece) piece.memberId = Object.hasOwn(workingTeam.ownSlots,id) ? workingTeam.ownSlots[id] : `m${index+1}`;
+    });
+    persistWorkingTeam(); render(); updateOverwriteUI(); window.MakuraCloud?.schedulePush?.();
+  }
+  function applyOwnMemberSet(id) {
+    const set = memberSets.find(item => item.id === id);
+    if (!set) return;
+    const slots = Object.fromEntries(lineupSlotIds.map((slot,index)=>[slot,`m${index+1}`]));
+    applyOwnTeam(set.members, set.ownSlots || slots, set.name);
+    activeMemberSetId = id; workingTeam.id = id;
+    localStorage.setItem(ACTIVE_MEMBER_SET_KEY,id);
+    persistWorkingTeam(); render();
+  }
+  function refreshMemberDrafts(side) {
+    if (!side || side === 'mine') { draftMembers = clone(members); Object.assign(draftSlots,buildCurrentLineupSlots('mine')); }
+    if (!side || side === 'enemy') { draftEnemies = clone(activeMemberSet().enemies); Object.assign(draftSlots,buildCurrentLineupSlots('enemy')); }
+    renderLineupModal();
+  }
   function applyEnemyTeam(profiles, slots) {
+    ensureWorkingTeam();
     activeMemberSet().enemies = normalizeEnemies(profiles);
     activeMemberSet().enemySlots = normalizeEnemySlots(slots);
     restoreEnemyAssignments();
-    localStorage.setItem(MEMBER_SETS_KEY, JSON.stringify(memberSets));
+    persistWorkingTeam();
     render();
     updateOverwriteUI();
     window.MakuraCloud?.schedulePush?.();
@@ -3872,7 +3981,7 @@ get draftEnemies(){return draftEnemies;}, set draftEnemies(value){draftEnemies=v
 get draftSlots(){return draftSlots;}, set draftSlots(value){draftSlots=value;},
 get memberEditorTeam(){return memberEditorTeam;}, set memberEditorTeam(value){memberEditorTeam=value;},
 get currentTacticId(){return currentTacticId;}, set currentTacticId(value){currentTacticId=value;},
-applyEnemyTeam,buildCurrentLineupSlots,currentBoardSnapshot,activeMemberSet,selectMemberSet,applyBoardSnapshot,renderLineupModal,updateCurrentTacticBar,updateOverwriteUI,showToast,ownPositionIds,enemyPositionIds,lineupSlotIds,enemyLineupSlotIds,stage,drawToolbar
+applyOwnTeam,applyOwnMemberSet,refreshMemberDrafts,applyEnemyTeam,buildCurrentLineupSlots,currentBoardSnapshot,activeMemberSet,selectMemberSet,applyBoardSnapshot,renderLineupModal,updateCurrentTacticBar,updateOverwriteUI,showToast,ownPositionIds,enemyPositionIds,lineupSlotIds,enemyLineupSlotIds,stage,drawToolbar
 };
   window.MakuraAppBridge = {
     exportCloudData,
@@ -3887,6 +3996,7 @@ applyEnemyTeam,buildCurrentLineupSlots,currentBoardSnapshot,activeMemberSet,sele
   });
 
 
+  restoreOwnWorkingAssignments();
   restoreEnemyAssignments();
   render();
   updatePillowToggleUI();
