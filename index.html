@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.58.4</title>
+  <title>まくら投げ戦術ボード Ver.0.58.5</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -1526,6 +1526,9 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 .team-editor-choice {display:flex;gap:6px}
 .team-editor-choice select {min-width:0;flex:1}
 .team-editor-choice button {flex:none}
+.team-delete-actions {flex-wrap:wrap}
+.team-delete-actions button {max-width:100%;white-space:normal;overflow-wrap:anywhere}
+#deleteTeamBtn {color:#a62222}
 .team-editor-controls input {width:100%;min-height:38px;border:1px solid #cfd6dd;border-radius:9px;padding:8px 10px;font:inherit;background:#fff;color:var(--text)}
 #editingTargetLabel {font-weight:800;margin:2px 0}
 /* Prevent selection on the app chrome while preserving editable fields and IDs. */
@@ -1555,7 +1558,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.58.4</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.58.5</span></div>
       <select id="analysisView" class="title-view-select" aria-label="表示モード"><option value="board" selected>戦術ボード</option><option value="split">戦術＋動画</option><option value="video">動画</option></select>
     </div>
 
@@ -1585,12 +1588,10 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       <div class="enemy-team-switcher">
         <label for="boardOwnTeamSelect">自チーム</label>
         <select id="boardOwnTeamSelect" aria-label="自チームを選択"><option value="">現在の自チーム</option></select>
-        <button class="toolbar-button" id="editOwnTeamBtn" type="button" aria-label="自チームの登録内容を編集">チーム編集</button>
       </div>
       <div class="enemy-team-switcher">
         <label for="boardEnemyTeamSelect">相手</label>
         <select id="boardEnemyTeamSelect" aria-label="対戦相手チーム"><option value="">フリー（未指定）</option></select>
-        <button class="toolbar-button" id="editEnemyTeamBtn" type="button" aria-label="相手チームの登録内容を編集">チーム編集</button>
       </div>
       <button class="toolbar-button quick-save-button" id="quickSaveBtn" type="button">新規保存</button>
       <button class="toolbar-button camera-button" id="screenshotBtn" type="button" aria-label="戦術画像を作成" title="戦術画像を作成">📷</button>
@@ -1658,7 +1659,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
   <footer class="bottom">
     <div class="draw-toolbar compact" id="drawToolbar" aria-label="操作ツール">
       <button class="draw-tool active" id="toolMove" type="button">駒移動</button>
-      <button class="draw-tool" id="membersBtn" type="button">チーム登録</button>
+      <button class="draw-tool" id="membersBtn" type="button">チーム登録・編集</button>
       <button class="draw-tool" id="swapTeamSidesBtn" type="button">自・相手 入替</button>
       <button class="draw-tool" id="toggleDrawToolsBtn" type="button">描画</button>
       <button class="draw-tool draw-optional" id="toolArrowMove" type="button">→ 移動</button>
@@ -1697,6 +1698,8 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       <label id="teamPresetLabel" for="teamPresetList">チームを選択</label>
       <div class="team-editor-choice"><select id="teamPresetList" aria-label="チームを選択"></select><button id="newTeamBtn" class="toolbar-button" type="button">新規チーム</button></div>
       <div id="editingTargetLabel" class="member-note"></div>
+      <div class="team-editor-choice team-delete-actions"><button id="deleteTeamBtn" class="toolbar-button" type="button">チームを削除</button><button id="restoreTeamBtn" class="toolbar-button" type="button" hidden>削除を元に戻す</button></div>
+      <div class="member-note">削除するのは登録チームだけです。保存戦術は残ります。</div>
       <label for="teamPresetName">チーム名</label>
       <input id="teamPresetName" aria-label="チーム名" placeholder="チーム名" maxlength="30">
       <div id="teamPresetHint" class="member-note">チームを選ぶと即反映。入力した変更は保存で反映します。</div>
@@ -1988,6 +1991,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
         return stored.map(set => ({
           id: String(set.id || `set-${Date.now()}`),
           name: String(set.name || '大会メンバー').slice(0, 30),
+          ...(set.deletedAt ? {deletedAt: Number(set.deletedAt)} : {}),
           ownSlots: set.ownSlots ? normalizeTeamSlots(set.ownSlots, 'mine') : undefined,
         members: normalizeMembers(set.members),
           enemySlots: normalizeEnemySlots(set.enemySlots),
@@ -3717,6 +3721,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
         id: String(item.id || `preset-${Date.now()}-${Math.random().toString(36).slice(2,7)}`),
         name: String(item.name || '編成').slice(0, 30),
         team: item.team,
+        ...(item.deletedAt ? {deletedAt: Number(item.deletedAt)} : {}),
         profiles: item.team === 'mine' ? normalizeMembers(item.profiles) : normalizeEnemies(item.profiles),
         slots: item.slots && typeof item.slots === 'object' ? item.slots : {}
       }));
@@ -3727,6 +3732,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
       memberSets = data.memberSets.map(set => ({
         id: String(set.id || `set-${Date.now()}`),
         name: String(set.name || '大会メンバー').slice(0, 30),
+          ...(set.deletedAt ? {deletedAt: Number(set.deletedAt)} : {}),
         ownSlots: set.ownSlots ? normalizeTeamSlots(set.ownSlots, 'mine') : undefined,
         members: normalizeMembers(set.members),
         enemySlots: normalizeEnemySlots(set.enemySlots),

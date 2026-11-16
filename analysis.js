@@ -556,9 +556,9 @@
   const freeId = team => team==='mine'?'__free_own__':'';
   const sourceKey = team => team==='mine'?OWN_SOURCE_KEY:ENEMY_SOURCE_KEY;
   function sources(team) {
-    const list=presets().filter(item=>item.team===team);
+    const list=presets().filter(item=>item.team===team&&!item.deletedAt);
     if(team!=='mine') return list;
-    return [...api.memberSets.map(set=>({id:`set:${set.id}`,kind:'set',name:set.name,profiles:set.members,
+    return [...api.memberSets.filter(set=>!set.deletedAt).map(set=>({id:`set:${set.id}`,kind:'set',name:set.name,profiles:set.members,
       slots:set.ownSlots||Object.fromEntries(api.lineupSlotIds.map((id,index)=>[id,`m${index+1}`]))})),...list];
   }
   function matchSource(source,profiles,slots,team) {
@@ -612,6 +612,10 @@
     $('newTeamBtn').setAttribute('aria-label',(own?'自チーム':'相手チーム')+'を新規登録');
     $('saveMembersBtn').textContent=fresh?'登録して使う':'変更を保存';
     $('saveMembersBtn').disabled=false;
+    $('deleteTeamBtn').hidden=fresh;
+    const removed=deletedSources(team);
+    $('restoreTeamBtn').hidden=!removed.length;
+    $('restoreTeamBtn').textContent=removed.length?`「${removed[0].name}」の削除を元に戻す`:'削除を元に戻す';
     $('teamPresetHint').textContent='選択はすぐ盤面に反映。名前・役割の変更は保存で反映します。';
   }
   function applySelection(team,id,fromModal=false) {
@@ -665,6 +669,43 @@
     window.MakuraCloud?.schedulePush?.();
     api.showToast('チームを保存して盤面に反映しました');
   }
+  // Keep deleted registrations for undo and historical tactics, with the marker in cloud payloads.
+  function deletedSources(team) {
+    const removed=presets().filter(item=>item.team===team&&item.deletedAt);
+    if(team==='mine')removed.push(...api.memberSets.filter(set=>set.deletedAt).map(set=>({...set,id:`set:${set.id}`,kind:'set'})));
+    return removed.sort((a,b)=>b.deletedAt-a.deletedAt);
+  }
+  function markDeleted(team,source,deletedAt) {
+    if(source.kind==='set') {
+      const record=api.memberSets.find(set=>`set:${set.id}`===source.id);
+      if(deletedAt)record.deletedAt=deletedAt;else delete record.deletedAt;
+      api.persistMemberSetsLocally();
+    } else {
+      const list=presets(),record=list.find(item=>item.id===source.id&&item.team===team);
+      if(deletedAt)record.deletedAt=deletedAt;else delete record.deletedAt;
+      localStorage.setItem('makura-team-presets-v1',JSON.stringify(list));
+    }
+  }
+  function deleteTeam() {
+    const team=api.memberEditorTeam,target=editorTargets[team];
+    const source=sources(team).find(item=>item.id===target?.id);
+    if(!source)return;
+    if(!window.confirm(`「${source.name}」を${team==='mine'?'自チーム':'相手チーム'}の登録から削除しますか？\n保存戦術・別チームは削除しません。使用中の場合はフリーに戻ります。\nこの画面で削除を元に戻せます。`))return;
+    const used=selection(team)===source.id;
+    markDeleted(team,source,Date.now());
+    if(used)applySelection(team,freeId(team),true);
+    else {editorTargets[team]=targetFor(team);api.refreshMemberDrafts(team);renderBoardTeams();renderEditor();}
+    window.MakuraCloud?.schedulePush?.();
+    api.showToast(`「${source.name}」を削除しました。元に戻せます`);
+  }
+  function restoreTeam() {
+    const team=api.memberEditorTeam,source=deletedSources(team)[0];
+    if(!source)return;
+    markDeleted(team,source,null);
+    // Undo restores registration only; it never overwrites the current board or pending inputs.
+    renderBoardTeams();renderEditor();window.MakuraCloud?.schedulePush?.();
+    api.showToast(`「${source.name}」の登録を元に戻しました`);
+  }
   window.MakuraTeamEditor={save:saveTeam};
   $('teamPresetName').addEventListener('input',()=>{
     const team=api.memberEditorTeam;
@@ -676,8 +717,8 @@
   $('newTeamBtn').onclick=newTeam;
   $('boardOwnTeamSelect').onchange=event=>applySelection('mine',event.target.value);
   $('boardEnemyTeamSelect').onchange=event=>applySelection('enemy',event.target.value);
-  $('editOwnTeamBtn').onclick=()=>$('membersBtn').click();
-  $('editEnemyTeamBtn').onclick=()=>{$('membersBtn').click();$('enemyMembersTab').click();};
+  $('deleteTeamBtn').onclick=deleteTeam;
+  $('restoreTeamBtn').onclick=restoreTeam;
   window.addEventListener('makura-opponent-change',renderBoardTeams);
   window.addEventListener('makura-enemy-draft-change',()=>{if(!$('membersModal').hidden)renderEditor();});
   renderBoardTeams();
