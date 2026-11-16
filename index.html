@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="まくら戦術" />
 
-  <title>まくら投げ戦術ボード Ver.0.58.5</title>
+  <title>まくら投げ戦術ボード Ver.0.58.6</title>
   <style>
     :root {
       --bg: #f5f5f2;
@@ -1558,7 +1558,7 @@ body.portrait-video[data-view=split] .analysis-layout {grid-template-columns:min
 <div class="app">
   <header class="topbar">
     <div class="title-wrap">
-      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.58.5</span></div>
+      <div class="title">まくら投げ戦術ボード <span style="font-size:11px;color:#7b858f;">Ver.0.58.6</span></div>
       <select id="analysisView" class="title-view-select" aria-label="表示モード"><option value="board" selected>戦術ボード</option><option value="split">戦術＋動画</option><option value="video">動画</option></select>
     </div>
 
@@ -3874,7 +3874,7 @@ applyOwnTeam,applyOwnMemberSet,refreshMemberDrafts,applyEnemyTeam,buildCurrentLi
 </script>
 
 
-<script src="analysis.js"></script>
+<script src="analysis.js?v=0.58.6"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
@@ -4169,7 +4169,7 @@ applyOwnTeam,applyOwnMemberSet,refreshMemberDrafts,applyEnemyTeam,buildCurrentLi
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch((error) => {
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch((error) => {
         console.warn('Service Worker registration failed:', error);
       });
     });

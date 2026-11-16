@@ -1,8 +1,7 @@
-const CACHE_NAME = 'makura-tactical-board-v0585-team-delete-20261116';
+const CACHE_NAME = 'makura-tactical-board-v0586-versioned-script-20261116';
 const APP_SHELL = [
-  './',
-  './index.html',
-  './analysis.js',
+  './index.html?v=0.58.6',
+  './analysis.js?v=0.58.6',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -41,19 +40,18 @@ self.addEventListener('fetch', (event) => {
       fetch(event.request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html?v=0.58.6', copy));
           return response;
         })
         .catch(() =>
-          caches.match(event.request)
-            .then((cached) => cached || caches.match('./index.html'))
+          caches.open(CACHE_NAME).then(cache => cache.match('./index.html?v=0.58.6'))
         )
     );
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
+    caches.open(CACHE_NAME).then(cache => cache.match(event.request)).then((cached) => {
       if (cached) return cached;
 
       return fetch(event.request).then((response) => {
